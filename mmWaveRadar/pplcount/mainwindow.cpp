@@ -9,8 +9,8 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <cmath>
+#include <cassert>
 #include <thread>
-
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -29,65 +29,113 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(ui->actionSerialSetting, &QAction::triggered,[=](){
-        SerialSettingDialog dlg(this, portNameUART, portNameAUX);
+        SerialSettingDialog dlg(this, _portNameUART, _portNameAUX);
         if (dlg.exec()) {
-            qDebug() << "[+] 配置端口: " << this->portNameUART;
-            qDebug() << "[+] 数据端口: " << this->portNameAUX;
-            radar->setPort(portNameUART, portNameAUX);
+            qDebug() << "[+] 配置端口: " << this->_portNameUART;
+            qDebug() << "[+] 数据端口: " << this->_portNameAUX;
+            radar->setPort(_portNameUART, _portNameAUX);
         }
     });
 
     connect(ui->actionAreaSetting, &QAction::triggered, [&](){
         AreaSettingDialog dlg(this);
         if (dlg.exec()) {
-            this->reDraw();
+
+            this->_drawBackground();
+            this->_replot();
             qDebug() << "area setting dld return TRUE!";
         }
     });
 
     connect(ui->actionRadarConfig, &QAction::triggered, [=](){
-        this->pathToConfig = QFileDialog::getOpenFileName(this);
+        this->_pathToConfig = QFileDialog::getOpenFileName(this);
 
-        qDebug() << "[+] 更改雷达配置文件路径: " << this->pathToConfig;
+        qDebug() << "[+] 更改雷达配置文件路径: " << this->_pathToConfig;
     });
 
     connect(ui->checkRedBlueBox, &QAction::toggled, [&](){
-        rbBoxEnabled = ui->checkRedBlueBox->isChecked();
-        this->_drawBackground();
+        _rbBoxEnabled = ui->checkRedBlueBox->isChecked();
+        this->_updateScene();
     });
+
+    connect(ui->checkFlipUpDown, &QAction::toggled, [&](){
+        if (ui->checkFlipUpDown->isChecked()) {
+            ui->plotPeopleCount->yAxis->setRangeReversed(true);
+            ui->plotPointCloud->yAxis->setRangeReversed(true);
+        } else {
+            ui->plotPeopleCount->yAxis->setRangeReversed(false);
+            ui->plotPointCloud->yAxis->setRangeReversed(false);
+        }
+        this->_replot();
+    });
+
+    connect(ui->checkFlipLeftRight, &QAction::toggled, [&](){
+        if (ui->checkFlipLeftRight->isChecked()) {
+            ui->plotPeopleCount->xAxis->setRangeReversed(true);
+            ui->plotPointCloud->xAxis->setRangeReversed(true);
+        } else {
+            ui->plotPeopleCount->xAxis->setRangeReversed(false);
+            ui->plotPointCloud->xAxis->setRangeReversed(false);
+        }
+        this->_replot();
+    });
+
+    connect(ui->actionDefaultSetting, &QAction::triggered, [&](){
+        this->_rbBoxEnabled = true;
+        ui->checkRedBlueBox->setChecked(true);
+        ui->checkFlipUpDown->setChecked(false);
+        ui->checkFlipLeftRight->setChecked(false);
+
+        this->_canvasLeft = 6.0f;
+        this->_canvasRight = 6.0f;
+        this->_canvasFront = 6.0f;
+        this->_canvasBack = 0.0f;
+
+        this->_spinAngle = 0.0f;
+        this->_viewAngle = 2 * PI / 3;
+
+        ui->plotPeopleCount->xAxis->setRangeReversed(false);
+        ui->plotPointCloud->xAxis->setRangeReversed(false);
+        ui->plotPeopleCount->yAxis->setRangeReversed(false);
+        ui->plotPointCloud->yAxis->setRangeReversed(false);
+
+        this->_updateScene();
+    });
+
+
 
     // 如果有多于两个串口， 则选取前两个，否则什么也不做，
     auto ports = QSerialPortInfo::availablePorts();
     if (ports.length() >= 2) {
 #if defined(__linux__)
-    portNameUART = "/dev/" + ports[0].portName();
-    portNameAUX = "/dev/" + ports[1].portName();
+    _portNameUART = "/dev/" + ports[0].portName();
+    _portNameAUX = "/dev/" + ports[1].portName();
 #elif defined(_WIN32)
-    portNameUART = ports[0].portName();
-    portNameAUX = ports[0].portName();
+    _portNameUART = ports[0].portName();
+    _portNameAUX = ports[0].portName();
 #endif
     }
     qDebug() << "初始化...";
     qDebug() << "自动选择串口...";
-    qDebug() << "配置端口: " << portNameUART;
-    qDebug() << "数据端口:" << portNameAUX;
+    qDebug() << "配置端口: " << _portNameUART;
+    qDebug() << "数据端口:" << _portNameAUX;
 
-    this->radar = new MmWaveRadar(portNameUART, portNameAUX);
+    radar = new MmWaveRadar(_portNameUART, _portNameAUX);
+    _rectRed0 = new QCPItemRect(ui->plotPointCloud);
+    _rectRed1 = new QCPItemRect(ui->plotPeopleCount);
+    _rectBlue0 = new QCPItemRect(ui->plotPointCloud);
+    _rectBlue1 = new QCPItemRect(ui->plotPeopleCount);
+    _bgLine00 = new QCPItemLine(ui->plotPointCloud);
+    _bgLine10 = new QCPItemLine(ui->plotPeopleCount);
+    _bgLine01 = new QCPItemLine(ui->plotPointCloud);
+    _bgLine11 = new QCPItemLine(ui->plotPeopleCount);
+    _bgArc0 = new QCPItemCurve(ui->plotPointCloud);
+    _bgArc1 = new QCPItemCurve(ui->plotPeopleCount);
 
     this->_drawBackground();
-
-    //设置画图
-//    ui->plotPointCloud->addGraph();
-//    this->_graphPointCloud = ui->plotPointCloud->graph(0);
-//    _graphPointCloud->setLineStyle(QCPGraph::lsNone);
-//    _graphPointCloud->setPen(QPen(Qt::darkGray));
-//    _graphPointCloud->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
-
-//    ui->plotPeopleCount->addGraph();
-//    this->_graphTarget = ui->plotPeopleCount->graph(0);
-//    _graphTarget->setLineStyle(QCPGraph::lsNone);
-//    _graphTarget->setBrush(Qt::DiagCrossPattern);
-//    _graphTarget->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 32));
+    this->_drawBlueBox();
+    this->_drawRedBox();
+    this->_replot();
 
     for (int i = 0; i < MAX_GRAPH_NUM; i++) {
         auto color = TargetColor[i % 10];
@@ -105,8 +153,6 @@ MainWindow::MainWindow(QWidget *parent) :
         _graphsPointTrace[i]->setLineStyle(QCPGraph::lsNone);
         _graphsPointTrace[i]->setPen(QColor(color));
         _graphsPointTrace[i]->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
-
-
     }
 
     ui->plotPointCloud->addGraph();
@@ -115,8 +161,26 @@ MainWindow::MainWindow(QWidget *parent) :
     _graphPointCloud->setPen(QPen(Qt::darkGray));
     _graphPointCloud->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
 
+
+    QTimer *timer=new QTimer(this);
+    connect(timer, &QTimer::timeout, [&](){
+        for (int i =0; i< MAX_GRAPH_NUM; i++) {
+           _graphsPointTrace[i]->setData(QVector<double>(0), QVector<double>(0));
+           _graphsTargetTrack[i]->setData(QVector<double>(0), QVector<double>(0));
+        }
+    });//timeoutslot()为自定义槽
+    timer->start(3000);
+
+
+    ui->lcdBlue->setStyleSheet("color:blue;");
+    ui->lcdRed->setStyleSheet("color:red;");
+
+
     setWindowTitle("基于毫米波雷达人员计数演示");
     setFixedSize(1440, 900);
+//    setFixedSize(1920, 1080);
+//    ui->plotPeopleCount->setGeometry(960,10, 960,480);
+//    ui->plotPointCloud->setGeometry(10,500, 960, 480);
 }
 
 MainWindow::~MainWindow()
@@ -124,7 +188,18 @@ MainWindow::~MainWindow()
     delete ui;
     delete radar;
     delete _graphPointCloud;
-    delete _graphTarget;
+
+    delete _bgLine00;
+    delete _bgLine01;
+    delete _bgLine10;
+    delete _bgLine11;
+    delete _bgArc0;
+    delete _bgArc1;
+
+    for (int i = 0; i < MAX_GRAPH_NUM; ++i) {
+        delete _graphsTargetTrack[i];
+        delete _graphsPointTrace[i];
+    }
 }
 
 
@@ -132,160 +207,179 @@ MainWindow::~MainWindow()
 void MainWindow::_drawBackground()
 {
     // 固定背景
-    double angle = this->visionAngle / 2.0f;
+    double angle = this->_viewAngle / 2.0f;
     double h = 4.0 /3 *(1-std::cos(angle))/std::sin(angle);
-    double remAngle = pi/2 - angle;
+    double remAngle = PI/2 - angle;
+    double x, y, a, b;
+    double _bgRadius = std::min(this->_canvasLeft, this->_canvasFront);
+
+    assert(_bgLine00 != nullptr);
+    assert(_bgLine01 != nullptr);
+    assert(_bgLine10 != nullptr);
+    assert(_bgLine11 != nullptr);
+    assert(_bgArc0 != nullptr);
+    assert(_bgArc1 != nullptr);
+
+    _bgLine00->setPen(QPen(Qt::darkBlue));
+    _bgLine00->start->setCoords(0, 0);
+    _bgLine10->setPen(QPen(Qt::darkBlue));
+    _bgLine10->start->setCoords(0, 0);
+    a = -_bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgLine00->end->setCoords(x, y);
+    _bgLine10->end->setCoords(x, y);
+
+    _bgLine01->setPen(QPen(Qt::darkBlue));
+    _bgLine01->start->setCoords(0, 0);
+    _bgLine11->setPen(QPen(Qt::darkBlue));
+    _bgLine11->start->setCoords(0, 0);
+    a = _bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+    _bgLine01->end->setCoords(x, y);
+    _bgLine11->end->setCoords(x, y);
+
+    _bgArc0->setPen(QPen(Qt::darkBlue));
+    _bgArc1->setPen(QPen(Qt::darkBlue));
+    // 贝叶斯曲线模拟圆弧(没有直接绘制圆弧的API)
+    a = -_bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc0->start->setCoords(x, y);
+    _bgArc1->start->setCoords(x, y);
+
+    a = _bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc0->end->setCoords(x, y);
+    _bgArc1->end->setCoords(x, y);
+
+    a = _bgRadius*((cos(_viewAngle)+h*sin(_viewAngle))*cos(remAngle) - sin(remAngle)*(sin(_viewAngle)-h*cos(_viewAngle)));
+    b = _bgRadius*(sin(_viewAngle)*cos(remAngle)+cos(_viewAngle)*sin(remAngle)-h*cos(_viewAngle)*cos(remAngle)+h*sin(_viewAngle)*sin(remAngle));
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc0->startDir->setCoords(x, y);
+    _bgArc1->startDir->setCoords(x, y);
+
+    a = _bgRadius* (cos(remAngle) - h* sin(remAngle));
+    b = _bgRadius * (h*cos(remAngle) + sin(remAngle));
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc0->endDir->setCoords(x, y);
+    _bgArc1->endDir->setCoords(x, y);
+
+    double dx = 0.5;
+    ui->plotPointCloud->xAxis->setRange(-_canvasLeft-dx, _canvasRight+dx);
+    ui->plotPeopleCount->xAxis->setRange(-_canvasLeft-dx, _canvasRight+dx);
+    ui->plotPeopleCount->yAxis->setRange(_canvasBack, _canvasFront);
+    ui->plotPointCloud->yAxis->setRange(_canvasBack, _canvasFront);
+
+
+}
+
+void MainWindow::_drawRedBox(QPen pen)
+{
     double x, y, a, b;
 
-    // 清空背景重新绘制
-    ui->plotPointCloud->clearItems();
-    ui->plotPeopleCount->clearItems();
+    assert(_rectRed0 != nullptr);
+    assert(_rectRed1 != nullptr);
 
-    QCPItemLine *line0 = new QCPItemLine(ui->plotPointCloud);
-    QCPItemLine *line1 = new QCPItemLine(ui->plotPeopleCount);
-    line0->setPen(QPen(Qt::darkBlue));
-    line0->start->setCoords(0, 0);
-    line1->setPen(QPen(Qt::darkBlue));
-    line1->start->setCoords(0, 0);
-    a = -r*std::sin(angle);
-    b = r*std::cos(angle);
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle)+a*sin(rotateAngle);
-    line0->end->setCoords(x, y);
-    line1->end->setCoords(x, y);
-
-    QCPItemLine *line2 = new QCPItemLine(ui->plotPointCloud);
-    QCPItemLine *line3 = new QCPItemLine(ui->plotPeopleCount);
-    line2->setPen(QPen(Qt::darkBlue));
-    line2->start->setCoords(0, 0);
-    line3->setPen(QPen(Qt::darkBlue));
-    line3->start->setCoords(0, 0);
-    a = r*std::sin(angle);
-    b = r*std::cos(angle);
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle) + a*sin(rotateAngle);
-    line2->end->setCoords(x, y);
-    line3->end->setCoords(x, y);
-
-    QCPItemCurve *curve = new QCPItemCurve(ui->plotPointCloud);
-    QCPItemCurve *curve1 = new QCPItemCurve(ui->plotPeopleCount);
-    curve->setPen(QPen(Qt::darkBlue));
-    curve1->setPen(QPen(Qt::darkBlue));
-    // 贝叶斯曲线模拟圆弧
-    a = -r*std::sin(angle);
-    b = r*std::cos(angle);
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle)+a*sin(rotateAngle);
-    curve->start->setCoords(x, y);
-    curve1->start->setCoords(x, y);
-
-    a = r*std::sin(angle);
-    b = r*std::cos(angle);
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle)+a*sin(rotateAngle);
-    curve->end->setCoords(x, y);
-    curve1->end->setCoords(x, y);
-
-    a = r*((cos(visionAngle)+h*sin(visionAngle))*cos(remAngle) - sin(remAngle)*(sin(visionAngle)-h*cos(visionAngle)));
-    b = r*(sin(visionAngle)*cos(remAngle)+cos(visionAngle)*sin(remAngle)-h*cos(visionAngle)*cos(remAngle)+h*sin(visionAngle)*sin(remAngle));
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle)+a*sin(rotateAngle);
-    curve->startDir->setCoords(x, y);
-    curve1->startDir->setCoords(x, y);
-
-    a = r* (cos(remAngle) - h* sin(remAngle));
-    b = r * (h*cos(remAngle) + sin(remAngle));
-    x = a*cos(rotateAngle) - b*sin(rotateAngle);
-    y = b*cos(rotateAngle)+a*sin(rotateAngle);
-    curve->endDir->setCoords(x, y);
-    curve1->endDir->setCoords(x, y);
-    if (rbBoxEnabled) {
-        //红蓝框  左红右蓝
-        QCPItemRect *rectRed0 = new QCPItemRect(ui->plotPointCloud);
-        QCPItemRect *rectRed1 = new QCPItemRect(ui->plotPeopleCount);
-        QCPItemRect *rectBlue0 = new QCPItemRect(ui->plotPointCloud);
-        QCPItemRect *rectBlue1 = new QCPItemRect(ui->plotPeopleCount);
-        rectRed0->setPen(QPen(Qt::red, 3));
-        rectRed1->setPen(QPen(Qt::red, 3));
-        rectBlue0->setPen(QPen(Qt::blue, 3));
-        rectBlue1->setPen(QPen(Qt::blue, 3));
-
-        a = _redTopLeftX;
-        b = _redTopLeftY;
-        x = a*cos(rotateAngle) - b*sin(rotateAngle);
-        y = b*cos(rotateAngle)+a*sin(rotateAngle);
-        rectRed0->setPen(QPen(Qt::red, 3));
-        rectRed0->topLeft->setCoords(x, y);
-        rectRed1->topLeft->setCoords(x, y);
-
-        a = _redBottomRightX;
-        b = _redBottomRightY;
-        x = a*cos(rotateAngle) - b*sin(rotateAngle);
-        y = b*cos(rotateAngle) + a*sin(rotateAngle);
-        rectRed0->bottomRight->setCoords(x, y);
-        rectRed1->bottomRight->setCoords(x, y);        
-
-        a = _blueTopLeftX;
-        b = _blueTopLeftY;
-        x = a*cos(rotateAngle) - b*sin(rotateAngle);
-        y = b*cos(rotateAngle) + a*sin(rotateAngle);
-        rectBlue0->topLeft->setCoords(x, y);
-        rectBlue1->topLeft->setCoords(x, y);
-        a = _blueBottomRightX;
-        b = _blueBottomRightY;
-        x = a*cos(rotateAngle) - b*sin(rotateAngle);
-        y = b*cos(rotateAngle) + a*sin(rotateAngle);
-        rectBlue0->bottomRight->setCoords(x, y);
-        rectBlue1->bottomRight->setCoords(x, y);
+    if (_rbBoxEnabled) {
+        _rectRed0->setPen(pen);
+        _rectRed1->setPen(pen);
+    } else {
+        //隐藏
+        _rectRed0->setPen(QPen(Qt::transparent));
+        _rectRed1->setPen(QPen(Qt::transparent));
     }
 
+    a = _redTopLeftX;
+    b = _redTopLeftY;
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _rectRed0->topLeft->setCoords(x, y);
+    _rectRed1->topLeft->setCoords(x, y);
 
-    double dx = 0.5, dy = 0.5;
-    ui->plotPointCloud->xAxis->setRange(-areaLeft-dx, areaRight+dx);
-    ui->plotPeopleCount->xAxis->setRange(-areaLeft-dx, areaRight+dx);
-    ui->plotPeopleCount->yAxis->setRange(areaBack, areaFront);
-    ui->plotPointCloud->yAxis->setRange(areaBack, areaFront);
+    a = _redBottomRightX;
+    b = _redBottomRightY;
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+    _rectRed0->bottomRight->setCoords(x, y);
+    _rectRed1->bottomRight->setCoords(x, y);
+}
 
+void MainWindow::_drawBlueBox(QPen pen)
+{
+    double x, y, a, b;
+
+    assert(_rectBlue0 != nullptr);
+    assert(_rectBlue1 != nullptr);
+
+    if (_rbBoxEnabled) {
+        this->_rectBlue0->setPen(pen);
+        this->_rectBlue1->setPen(pen);
+    } else {
+        this->_rectBlue0->setPen(QPen(Qt::transparent));
+        this->_rectBlue1->setPen(QPen(Qt::transparent));
+    }
+
+    a = _blueTopLeftX;
+    b = _blueTopLeftY;
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+    _rectBlue0->topLeft->setCoords(x, y);
+    _rectBlue1->topLeft->setCoords(x, y);
+    a = _blueBottomRightX;
+    b = _blueBottomRightY;
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+    _rectBlue0->bottomRight->setCoords(x, y);
+    _rectBlue1->bottomRight->setCoords(x, y);
+}
+
+void MainWindow::_replot()
+{
     ui->plotPointCloud->replot();
     ui->plotPeopleCount->replot();
 }
 
 
-void MainWindow::reDraw()
-{
-    this->_drawBackground();
-    qDebug() << "Not yet Implement: reDraw!";
-}
+
 
 void MainWindow::queryArea(double *left, double *right, double *front, double *back)
 {
-    *left = this->areaLeft;
-    *right = this->areaRight;
-    *front = this->areaFront;
-    *back = this->areaBack;
+    *left = this->_canvasLeft;
+    *right = this->_canvasRight;
+    *front = this->_canvasFront;
+    *back = this->_canvasBack;
 }
 
 void MainWindow::queryAngle(double *va, double *ra)
 {
-    *va = this->visionAngle/pi*180;
-    *ra = this->rotateAngle/pi*180;
+    *va = this->_viewAngle/PI*180;
+    *ra = this->_spinAngle/PI*180;
 }
 
 void MainWindow::setArea(double left, double right, double front, double back)
 {
-    this->areaBack = back;
-    this->areaFront = front;
-    this->areaLeft = left;
-    this->areaRight = right;
+    this->_canvasBack = back;
+    this->_canvasFront = front;
+    this->_canvasLeft = left;
+    this->_canvasRight = right;
 }
 
 void MainWindow::setAngle(double va, double ra)
 {
-    this->visionAngle = va / 180.0 * pi;
-    qDebug() << "Pi: " << pi;
-    qDebug() << "this->visonAngle" << this->visionAngle;
-    this->rotateAngle = ra / 180.0 * pi;
-    qDebug() << "this->rotateAngle" << this->rotateAngle;
+    this->_viewAngle = va / 180.0 * PI;
+    qDebug() << "Pi: " << PI;
+    qDebug() << "this->visonAngle" << this->_viewAngle;
+    this->_spinAngle = ra / 180.0 * PI;
+    qDebug() << "this->rotateAngle" << this->_spinAngle;
 }
 
 
@@ -315,9 +409,9 @@ void MainWindow::on_btnSendConfig_clicked()
 
     // 针对第一次发送 会出现 不是 CLI Command
     QByteArray radarRetStr;
-    if(!radar->config(pathToConfig, radarRetStr)) {
+    if(!radar->config(_pathToConfig, radarRetStr)) {
         qDebug() << "错误: 雷达返回"<< radarRetStr;
-        if(radarRetStr.contains("Error") || radarRetStr.length() == 0 || !radar->config(pathToConfig)){
+        if(radarRetStr.contains("Error") || radarRetStr.length() == 0 || !radar->config(_pathToConfig)){
             qDebug() << "重新配置";
             QMessageBox::critical(this,
                                   "Fatal",
@@ -346,12 +440,9 @@ void MainWindow::on_btnStartDetect_clicked()
 void MainWindow::listen_wrapper(MainWindow *p)
 {
     const char *frame;
-
     QByteArray bufRecv;
     QByteArray bufFrame;
     qint64 skipLength;
-    quint16 numTLVs;
-
 
     if (!p->radar->isAuxOpen()) {
         p->radar->openSerialAux();
@@ -362,7 +453,7 @@ void MainWindow::listen_wrapper(MainWindow *p)
     }
 
     const QByteArray SYNC = RadarPacket::getSync();
-    qDebug() << "等待雷达数据";
+//    qDebug() << "等待雷达数据";
 
 
 labelRecover:
@@ -456,6 +547,14 @@ void MainWindow::collectPointCloud(const char *frame, int nTLVs)
     }
 }
 
+void MainWindow::_updateScene()
+{
+    this->_drawBackground();
+    this->_drawBlueBox();
+    this->_drawRedBox();
+    this->_replot();
+}
+
 
 void MainWindow::_parseFrame(const char *frame)
 {
@@ -538,8 +637,8 @@ void MainWindow::_parseTartget(const char *tlv)
             traceY.pop_front();
         }
 
-        _graphsPointTrace[tid%MAX_GRAPH_NUM]->setData(traceX, traceY);
-        _graphsTargetTrack[j%MAX_GRAPH_NUM]->setData(QVector<double>(1, x[j]), QVector<double>(1, y[j]));
+        _graphsPointTrace[tid % MAX_GRAPH_NUM]->setData(traceX, traceY);
+        _graphsTargetTrack[j % MAX_GRAPH_NUM]->setData(QVector<double>(1, x[j]), QVector<double>(1, y[j]));
 
         if ( x[j] > _redTopLeftX && x[j] < _redBottomRightX
                     && y[j] > _redBottomRightY && y[j] < _redTopLeftY) {
@@ -550,8 +649,19 @@ void MainWindow::_parseTartget(const char *tlv)
             b += 1;
         }
 
-        ui->plotPointCloud->replot();
-        ui->plotPeopleCount->replot();
+        if (r != 0) {
+            this->_drawRedBox(QPen(Qt::red, 6));
+        } else {
+            // 恢复默认形状
+            this->_drawRedBox();
+        }
+        if (b != 0) {
+            this->_drawBlueBox(QPen(Qt::blue, 6));
+        } else {
+            this->_drawBlueBox();
+        }
+
+        this->_replot();
     }
     ui->lcdRed->display(QString::number(r));
     ui->lcdBlue->display(QString::number(b));
@@ -562,8 +672,3 @@ void MainWindow::_parseTartgetIdx(const char *tlv)
 
 }
 
-
-void MainWindow::on_pushButton_clicked()
-{
-    QMessageBox::critical(this,""," THanks!");
-}

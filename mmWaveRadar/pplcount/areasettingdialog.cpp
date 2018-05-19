@@ -39,6 +39,8 @@ AreaSettingDialog::AreaSettingDialog(MainWindow *parent) :
         parent->setAngle(_visionAngle, _rotateAngle);
         parent->setArea(_left, _right, _front, _back);
     });
+
+    setWindowTitle("视场设置");
 }
 
 AreaSettingDialog::~AreaSettingDialog()

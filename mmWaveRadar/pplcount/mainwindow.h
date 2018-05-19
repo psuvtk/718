@@ -9,12 +9,10 @@
 #include <cmath>
 
 
-const double pi = std::acos(-1);
+const double PI = std::acos(-1);
 #define MAX_GRAPH_NUM 64
-constexpr Qt::GlobalColor TargetColor[10] = {Qt::red, Qt::darkCyan, Qt::yellow, Qt::darkMagenta, Qt::green,
-                                                   Qt::darkRed, Qt::cyan, Qt::darkYellow, Qt::magenta, Qt::darkGreen};
-
-
+constexpr Qt::GlobalColor TargetColor[10] = {Qt::red, Qt::darkCyan, Qt::darkGreen,  Qt::darkMagenta, Qt::green,
+                                                   Qt::darkRed, Qt::cyan, Qt::darkYellow, Qt::magenta, Qt::yellow};
 
 namespace Ui {
 class MainWindow;
@@ -33,55 +31,47 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void drawBackground();
-    void reDraw();
-
     void queryArea(double *left, double *right, double *front, double *back);
     void queryAngle(double *va, double *ra);
     void setArea(double left, double right, double front, double back);
     void setAngle(double va, double ra);
 
-
     static void listen_wrapper(MainWindow *p);
-
 
     // 给周青收集点云数据
     void collectPointCloud(const char *body, int nTLVs);
 
+
     void _drawBackground();
+    void _drawRedBox(QPen pen=QPen(Qt::darkRed, 2));
+    void _drawBlueBox(QPen pen=QPen(Qt::darkBlue, 2));
+    void _replot();
+    void _updateScene();
+
+
     void _parseFrame(const char *frame);
     void _parseTartget(const char *tlv);
     void _parsePoint(const char *tlv);
     void _parseTartgetIdx(const char *tlv);
 
 private slots:
-
     void on_btnSendConfig_clicked();
-
     void on_btnStartDetect_clicked();
-
     void on_btnRadarOff_clicked();
 
-    void on_pushButton_clicked();
 
 private:
     Ui::MainWindow *ui;
     MmWaveRadar *radar;
 
-    QCPGraph *_graphsPointTrace[MAX_GRAPH_NUM];
-    QCPGraph *_graphsTargetTrack[MAX_GRAPH_NUM];
-
     // canvas setting
-    double areaLeft = 6.0f;
-    double areaRight = 6.0f;
-    double areaFront = 6.0f;
-    double areaBack = 0.0f;
-
-    // 扇形区域半径
-    const double r = 6;
+    double _canvasLeft = 6.0f;
+    double _canvasRight = 6.0f;
+    double _canvasFront = 6.0f;
+    double _canvasBack = 0.0f;
 
     // 红蓝框
-    bool rbBoxEnabled = true;
+    bool _rbBoxEnabled = true;
     double _redTopLeftX = -2.0f;
     double _redTopLeftY = 3.5f;
     double _redBottomRightX = -0.5f;
@@ -92,36 +82,37 @@ private:
     double _blueBottomRightX = 2.0f;
     double _blueBottomRightY = 1.5f;
 
-
-
-
-    // serial setting;
-    BaudRate baudRate = BaudRate::Baud115200;
-    StopBits stopBits = StopBits::OneStop;
-    DataBits dataBits = DataBits::Data8;
-    Parity parity = Parity::NoParity;
-
     // 视野角
-    double visionAngle = 2 * pi / 3;
+    double _viewAngle = 2 * PI / 3;
     // 旋转角
-    double rotateAngle = 0.0f;
-
+    double _spinAngle = 0.0f;
 
     QCPGraph *_graphPointCloud = nullptr;
-    QCPGraph *_graphTarget = nullptr;
-
 
 #if defined(__linux__)
-    QString portNameUART = "/dev/ttyACM0";
-    QString portNameAUX = "/dev/ttyACM1";
+    QString _portNameUART = "/dev/ttyACM0";
+    QString _portNameAUX = "/dev/ttyACM1";
 #elif defined(_WIN32)
-    QString portNameUART = "COM3";
-    QString portNameAUX = "COM4";
+    QString _portNameUART = "COM3";
+    QString _portNameAUX = "COM4";
 #endif
 
 
 
-    QString pathToConfig= "/home/kristoffer/Workspace/Qt/lab0011-pplcount/lab0011_pplcount_gui/mmw_pplcount_demo_default.cfg";
+    QString _pathToConfig= "/home/kristoffer/Workspace/Qt/lab0011-pplcount/lab0011_pplcount_gui/mmw_pplcount_demo_default.cfg";
+
+    QCPItemRect *_rectRed0 = nullptr;
+    QCPItemRect *_rectRed1 = nullptr;
+    QCPItemRect *_rectBlue0 = nullptr;
+    QCPItemRect *_rectBlue1 = nullptr;
+    QCPItemLine *_bgLine00 = nullptr;
+    QCPItemLine *_bgLine10 = nullptr;
+    QCPItemLine *_bgLine01 = nullptr;
+    QCPItemLine *_bgLine11 = nullptr;
+    QCPItemCurve *_bgArc0 = nullptr;
+    QCPItemCurve *_bgArc1 = nullptr;
+    QCPGraph *_graphsPointTrace[MAX_GRAPH_NUM];
+    QCPGraph *_graphsTargetTrack[MAX_GRAPH_NUM];
 
 };
 
