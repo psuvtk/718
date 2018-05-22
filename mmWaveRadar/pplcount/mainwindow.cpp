@@ -1,15 +1,15 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "areasettingdialog.h"
-#include "qcustomplot.h"
-#include "mmwaveconfig.h"
+#include "fovsettingdialog.h"
 #include "serialsettingdialog.h"
+#include "mmwaveconfig.h"
+#include "qcustomplot.h"
 
 #include <QSerialPortInfo>
 #include <QMessageBox>
 #include <QDebug>
-#include <cmath>
 #include <cassert>
+#include <cmath>
 #include <thread>
 
 
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(ui->actionAboutUs, &QAction::triggered, [=](){
         QMessageBox::about(this,
-                           "OSET",
+                           "关于我们",
                            "海空电子<br>@author: Kristoffer<br>@email: psuvtk@gmail.com");
     });
 
@@ -40,16 +40,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionAreaSetting, &QAction::triggered, [&](){
         AreaSettingDialog dlg(this);
         if (dlg.exec()) {
-
-            this->_drawBackground();
-            this->_replot();
+            this->_updateScene();
             qDebug() << "area setting dld return TRUE!";
         }
     });
 
     connect(ui->actionRadarConfig, &QAction::triggered, [=](){
         this->_pathToConfig = QFileDialog::getOpenFileName(this);
-
         qDebug() << "[+] 更改雷达配置文件路径: " << this->_pathToConfig;
     });
 
@@ -121,10 +118,10 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "数据端口:" << _portNameAUX;
 
     radar = new MmWaveRadar(_portNameUART, _portNameAUX);
-    _rectRed0 = new QCPItemRect(ui->plotPointCloud);
-    _rectRed1 = new QCPItemRect(ui->plotPeopleCount);
-    _rectBlue0 = new QCPItemRect(ui->plotPointCloud);
-    _rectBlue1 = new QCPItemRect(ui->plotPeopleCount);
+//    _rectRed0 = new QCPItemRect(ui->plotPointCloud);
+//    _rectRed1 = new QCPItemRect(ui->plotPeopleCount);
+//    _rectBlue0 = new QCPItemRect(ui->plotPointCloud);
+//    _rectBlue1 = new QCPItemRect(ui->plotPeopleCount);
     _bgLine00 = new QCPItemLine(ui->plotPointCloud);
     _bgLine10 = new QCPItemLine(ui->plotPeopleCount);
     _bgLine01 = new QCPItemLine(ui->plotPointCloud);
@@ -284,62 +281,213 @@ void MainWindow::_drawBackground()
 
 void MainWindow::_drawRedBox(QPen pen)
 {
-    double x, y, a, b;
+//    double x, y, a, b;
 
-    assert(_rectRed0 != nullptr);
-    assert(_rectRed1 != nullptr);
+//    assert(_rectRed0 != nullptr);
+//    assert(_rectRed1 != nullptr);
+
+//    if (_rbBoxEnabled) {
+//        _rectRed0->setPen(pen);
+//        _rectRed1->setPen(pen);
+//    } else {
+//        //隐藏
+//        _rectRed0->setPen(QPen(Qt::transparent));
+//        _rectRed1->setPen(QPen(Qt::transparent));
+//    }
+
+//    a = _redTopLeftX;
+//    b = _redTopLeftY;
+//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+//    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+//    _rectRed0->topLeft->setCoords(x, y);
+//    _rectRed1->topLeft->setCoords(x, y);
+
+//    a = _redBottomRightX;
+//    b = _redBottomRightY;
+//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+//    _rectRed0->bottomRight->setCoords(x, y);
+//    _rectRed1->bottomRight->setCoords(x, y);
+
+
+    double x, y;
+    static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineLeft = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineRight = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineTopPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineBottomPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineLeftPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineRightPoint = new QCPItemLine(ui->plotPointCloud);
+
 
     if (_rbBoxEnabled) {
-        _rectRed0->setPen(pen);
-        _rectRed1->setPen(pen);
+        lineTop->setPen(pen);
+        lineTopPoint->setPen(pen);
+        lineBottom->setPen(pen);
+        lineBottomPoint->setPen(pen);
+        lineLeft->setPen(pen);
+        lineLeftPoint->setPen(pen);
+        lineRight->setPen(pen);
+        lineRightPoint->setPen(pen);
     } else {
         //隐藏
-        _rectRed0->setPen(QPen(Qt::transparent));
-        _rectRed1->setPen(QPen(Qt::transparent));
+        lineTop->setPen(QPen(Qt::transparent));
+        lineTopPoint->setPen(QPen(Qt::transparent));
+        lineBottom->setPen(QPen(Qt::transparent));
+        lineBottomPoint->setPen(QPen(Qt::transparent));
+        lineLeft->setPen(QPen(Qt::transparent));
+        lineLeftPoint->setPen(QPen(Qt::transparent));
+        lineRight->setPen(QPen(Qt::transparent));
+        lineRightPoint->setPen(QPen(Qt::transparent));
     }
 
-    a = _redTopLeftX;
-    b = _redTopLeftY;
-    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    y = b*cos(_spinAngle)+a*sin(_spinAngle);
-    _rectRed0->topLeft->setCoords(x, y);
-    _rectRed1->topLeft->setCoords(x, y);
+    _rotateCoord( _redTopLeftX, _redTopLeftY, &x, &y);
+    lineTop->start->setCoords(x, y);
+    lineLeft->end->setCoords(x, y);
+    lineTopPoint->start->setCoords(x, y);
+    lineLeftPoint->end->setCoords(x, y);
 
-    a = _redBottomRightX;
-    b = _redBottomRightY;
-    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-    _rectRed0->bottomRight->setCoords(x, y);
-    _rectRed1->bottomRight->setCoords(x, y);
+
+    _rotateCoord( _redBottomRightX, _redTopLeftY, &x, &y);
+    lineTop->end->setCoords(x, y);
+    lineRight->start->setCoords(x, y);
+    lineTopPoint->end->setCoords(x, y);
+    lineRightPoint->start->setCoords(x, y);
+
+    _rotateCoord(_redBottomRightX, _redBottomRightY, &x, &y);
+    lineRight->end->setCoords(x, y);
+    lineBottom->start->setCoords(x, y);
+    lineRightPoint->end->setCoords(x, y);
+    lineBottomPoint->start->setCoords(x, y);
+
+    _rotateCoord(_redTopLeftX, _redBottomRightY,&x, &y);
+    lineBottom->end->setCoords(x, y);
+    lineLeft->start->setCoords(x, y);
+    lineBottomPoint->end->setCoords(x, y);
+    lineLeftPoint->start->setCoords(x, y);
+
+
+}
+
+void MainWindow::_rotateCoord(double a, double b, double *x, double *y)
+{
+    *x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    *y = b*cos(_spinAngle) + a*sin(_spinAngle);
+}
+
+bool MainWindow::_isInRedBox(double x, double y)
+{
+    double a, b;
+    // rotate back
+    a = x*cos(_spinAngle) + y*sin(_spinAngle);
+    b = y*cos(_spinAngle) - x*sin(_spinAngle);
+
+    return  a > _redTopLeftX
+            && a < _redBottomRightX
+            && b > _redBottomRightY
+            && b < _redTopLeftY;
+
+}
+
+bool MainWindow::_isInBlueBox(double x, double y)
+{
+    double a, b;
+    // rotate back
+    a = x*cos(_spinAngle) + y*sin(_spinAngle);
+    b = y*cos(_spinAngle) - x*sin(_spinAngle);
+
+    return  a > _blueTopLeftX
+            && a < _blueBottomRightX
+            && b > _blueBottomRightY
+            && b < _blueTopLeftY;
 }
 
 void MainWindow::_drawBlueBox(QPen pen)
 {
-    double x, y, a, b;
+//    double x, y, a, b;
 
-    assert(_rectBlue0 != nullptr);
-    assert(_rectBlue1 != nullptr);
+//    assert(_rectBlue0 != nullptr);
+//    assert(_rectBlue1 != nullptr);
+
+//    if (_rbBoxEnabled) {
+//        this->_rectBlue0->setPen(pen);
+//        this->_rectBlue1->setPen(pen);
+//    } else {
+//        this->_rectBlue0->setPen(QPen(Qt::transparent));
+//        this->_rectBlue1->setPen(QPen(Qt::transparent));
+//    }
+
+//    a = _blueTopLeftX;
+//    b = _blueTopLeftY;
+//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+//    _rectBlue0->topLeft->setCoords(x, y);
+//    _rectBlue1->topLeft->setCoords(x, y);
+//    a = _blueBottomRightX;
+//    b = _blueBottomRightY;
+//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+//    _rectBlue0->bottomRight->setCoords(x, y);
+//    _rectBlue1->bottomRight->setCoords(x, y);
+
+
+    double x, y;
+    static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineLeft = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineRight = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *lineTopPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineBottomPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineLeftPoint = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *lineRightPoint = new QCPItemLine(ui->plotPointCloud);
+
 
     if (_rbBoxEnabled) {
-        this->_rectBlue0->setPen(pen);
-        this->_rectBlue1->setPen(pen);
+        lineTop->setPen(pen);
+        lineTopPoint->setPen(pen);
+        lineBottom->setPen(pen);
+        lineBottomPoint->setPen(pen);
+        lineLeft->setPen(pen);
+        lineLeftPoint->setPen(pen);
+        lineRight->setPen(pen);
+        lineRightPoint->setPen(pen);
     } else {
-        this->_rectBlue0->setPen(QPen(Qt::transparent));
-        this->_rectBlue1->setPen(QPen(Qt::transparent));
+        //隐藏
+        lineTop->setPen(QPen(Qt::transparent));
+        lineTopPoint->setPen(QPen(Qt::transparent));
+        lineBottom->setPen(QPen(Qt::transparent));
+        lineBottomPoint->setPen(QPen(Qt::transparent));
+        lineLeft->setPen(QPen(Qt::transparent));
+        lineLeftPoint->setPen(QPen(Qt::transparent));
+        lineRight->setPen(QPen(Qt::transparent));
+        lineRightPoint->setPen(QPen(Qt::transparent));
     }
 
-    a = _blueTopLeftX;
-    b = _blueTopLeftY;
-    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-    _rectBlue0->topLeft->setCoords(x, y);
-    _rectBlue1->topLeft->setCoords(x, y);
-    a = _blueBottomRightX;
-    b = _blueBottomRightY;
-    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-    _rectBlue0->bottomRight->setCoords(x, y);
-    _rectBlue1->bottomRight->setCoords(x, y);
+    _rotateCoord( _blueTopLeftX, _blueTopLeftY, &x, &y);
+    lineTop->start->setCoords(x, y);
+    lineLeft->end->setCoords(x, y);
+    lineTopPoint->start->setCoords(x, y);
+    lineLeftPoint->end->setCoords(x, y);
+
+
+    _rotateCoord( _blueBottomRightX, _blueTopLeftY, &x, &y);
+    lineTop->end->setCoords(x, y);
+    lineRight->start->setCoords(x, y);
+    lineTopPoint->end->setCoords(x, y);
+    lineRightPoint->start->setCoords(x, y);
+
+    _rotateCoord(_blueBottomRightX, _blueBottomRightY, &x, &y);
+    lineRight->end->setCoords(x, y);
+    lineBottom->start->setCoords(x, y);
+    lineRightPoint->end->setCoords(x, y);
+    lineBottomPoint->start->setCoords(x, y);
+
+    _rotateCoord(_blueTopLeftX, _blueBottomRightY,&x, &y);
+    lineBottom->end->setCoords(x, y);
+    lineLeft->start->setCoords(x, y);
+    lineBottomPoint->end->setCoords(x, y);
+    lineLeftPoint->start->setCoords(x, y);
 }
 
 void MainWindow::_replot()
@@ -365,6 +513,22 @@ void MainWindow::queryAngle(double *va, double *ra)
     *ra = this->_spinAngle/PI*180;
 }
 
+void MainWindow::queryRedBoxShape(double *a, double *b, double *c, double *d)
+{
+    *a = _redTopLeftX;
+    *b = _redTopLeftY;
+    *c = _redBottomRightX;
+    *d = _redBottomRightY;
+}
+
+void MainWindow::queryBlueBoxShape(double *a, double *b, double *c, double *d)
+{
+    *a = _blueTopLeftX;
+    *b = _blueTopLeftY;
+    *c = _blueBottomRightX;
+    *d = _blueBottomRightY;
+}
+
 void MainWindow::setArea(double left, double right, double front, double back)
 {
     this->_canvasBack = back;
@@ -380,6 +544,22 @@ void MainWindow::setAngle(double va, double ra)
     qDebug() << "this->visonAngle" << this->_viewAngle;
     this->_spinAngle = ra / 180.0 * PI;
     qDebug() << "this->rotateAngle" << this->_spinAngle;
+}
+
+void MainWindow::setRedBoxShape(double a, double b, double c, double d)
+{
+    this->_redTopLeftX = a;
+    this->_redTopLeftY = b;
+    this->_redBottomRightX = c;
+    this->_redBottomRightY = d;
+}
+
+void MainWindow::setBlueBoxShape(double a, double b, double c, double d)
+{
+    this->_blueTopLeftX = a;
+    this->_blueTopLeftY = b;
+    this->_blueBottomRightX = c;
+    this->_blueBottomRightY = d;
 }
 
 
@@ -640,12 +820,10 @@ void MainWindow::_parseTartget(const char *tlv)
         _graphsPointTrace[tid % MAX_GRAPH_NUM]->setData(traceX, traceY);
         _graphsTargetTrack[j % MAX_GRAPH_NUM]->setData(QVector<double>(1, x[j]), QVector<double>(1, y[j]));
 
-        if ( x[j] > _redTopLeftX && x[j] < _redBottomRightX
-                    && y[j] > _redBottomRightY && y[j] < _redTopLeftY) {
+        if (_isInRedBox(x[j], y[j])) {
             r += 1;
         }
-        if ( x[j] > _blueTopLeftX && x[j] < _blueBottomRightX
-                    && y[j] > _blueBottomRightY && y[j] < _redTopLeftY) {
+        if (_isInBlueBox(x[j], y[j])) {
             b += 1;
         }
 

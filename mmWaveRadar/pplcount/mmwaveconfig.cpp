@@ -5,8 +5,6 @@
 #include <iostream>
 #include <thread>
 
-#include <stdio.h>
-#include <unistd.h>
 
 MmWaveRadar::MmWaveRadar(const QString portUart, const QString portAux)
 {
@@ -76,7 +74,6 @@ bool MmWaveRadar::config(const QString pathToConfig, QByteArray &radarRetStr)
     }
 
     QFile configFile(pathToConfig);
-
     if (! configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Error: can't open file!";
     } else {
@@ -121,7 +118,7 @@ bool MmWaveRadar::sendCmd(QString cmd)
     }
 
     // 发送成功
-    if(bufRecv.contains("Done")) {
+    if (bufRecv.contains("Done")) {
         qDebug() << "[+] Send: "<< cmd;
         return true;
     } else {
@@ -145,7 +142,7 @@ bool MmWaveRadar::sendCmd(QString cmd, QByteArray &radarRetStr)
     }
 
     // 发送成功
-    if(radarRetStr.contains("Done")) {
+    if (radarRetStr.contains("Done")) {
         qDebug() << "[+] Send: "<< cmd;
         return true;
     } else {

@@ -14,11 +14,14 @@ public:
 
     void setPort(const QString portUart, const QString portAux);
 
-
     bool config(const QString pathToConfig);
     bool config(const QString pathToConfig, QByteArray &radarRetStr);
     bool sendCmd(QString cmd);
     bool sendCmd(QString cmd, QByteArray &radarRetStr);
+
+    QByteArray readAll();
+    QByteArray read(qint64 nBytesRead);
+    bool waitForReadyRead();
 
     bool sensorStart();
     bool isRunning();
@@ -28,20 +31,10 @@ public:
 
     bool isAuxOpen() { return serialAux->isOpen();}
 
-
-
-    bool waitForReadyRead();
-    QByteArray readAll();
-    QByteArray read(qint64 nBytesRead);
-
-
-private slots:
-
 private:
     QSerialPort *serialUart = nullptr;
     QSerialPort *serialAux = nullptr;
     bool flagRunning = false;
-
 
     // 数据端口波特率
     const qint32 AuxBaudRate921600 = 921600;

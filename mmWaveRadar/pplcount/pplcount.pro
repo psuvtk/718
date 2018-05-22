@@ -26,23 +26,23 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     qcustomplot.cpp \
-    areasettingdialog.cpp \
     mmwaveconfig.cpp \
-    serialsettingdialog.cpp
+    serialsettingdialog.cpp \
+    fovsettingdialog.cpp
 
 HEADERS += \
         mainwindow.h \
     qcustomplot.h \
-    areasettingdialog.h \
     mmwaveconfig.h \
     serialsettingdialog.h \
-    radarpacket.h
+    radarpacket.h \
+    fovsettingdialog.h
 
     radarpacket.h
 
 FORMS += \
         mainwindow.ui \
-    areasettingdialog.ui \
-    serialsettingdialog.ui
+    serialsettingdialog.ui \
+    fovsettingdialog.ui
 
 #CONFIG += C++11

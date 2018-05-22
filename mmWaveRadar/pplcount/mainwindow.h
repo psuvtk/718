@@ -3,10 +3,11 @@
 
 #include <QMainWindow>
 #include <QSerialPort>
+#include <cmath>
+
 #include "mmwaveconfig.h"
 #include "radarpacket.h"
 #include "qcustomplot.h"
-#include <cmath>
 
 
 const double PI = std::acos(-1);
@@ -22,25 +23,12 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    typedef QSerialPort::BaudRate BaudRate;
-    typedef QSerialPort::StopBits StopBits;
-    typedef QSerialPort::DataBits DataBits;
-    typedef QSerialPort::Parity Parity;
-
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void queryArea(double *left, double *right, double *front, double *back);
-    void queryAngle(double *va, double *ra);
-    void setArea(double left, double right, double front, double back);
-    void setAngle(double va, double ra);
-
-    static void listen_wrapper(MainWindow *p);
-
     // 给周青收集点云数据
     void collectPointCloud(const char *body, int nTLVs);
-
 
     void _drawBackground();
     void _drawRedBox(QPen pen=QPen(Qt::darkRed, 2));
@@ -48,27 +36,43 @@ public:
     void _replot();
     void _updateScene();
 
-
+    // 解析数据包
     void _parseFrame(const char *frame);
     void _parseTartget(const char *tlv);
     void _parsePoint(const char *tlv);
     void _parseTartgetIdx(const char *tlv);
+    // 多线程监听
+    static void listen_wrapper(MainWindow *p);
 
+    // utils
+    void queryArea(double *left, double *right, double *front, double *back);
+    void queryAngle(double *va, double *ra);
+    void queryRedBoxShape(double *a, double *b, double *c, double *d);
+    void queryBlueBoxShape(double *a, double *b, double *c, double *d);
+    void setArea(double left, double right, double front, double back);
+    void setAngle(double va, double ra);
+    void setRedBoxShape(double a, double b, double c, double d);
+    void setBlueBoxShape(double a, double b, double c, double d);
+
+    void _rotateCoord(double a, double b, double *x, double *y);
+    bool _isInRedBox(double x, double y);
+    bool _isInBlueBox(double x, double y);
 private slots:
     void on_btnSendConfig_clicked();
     void on_btnStartDetect_clicked();
     void on_btnRadarOff_clicked();
 
-
 private:
     Ui::MainWindow *ui;
     MmWaveRadar *radar;
 
-    // canvas setting
+    // 视场设置
     double _canvasLeft = 6.0f;
     double _canvasRight = 6.0f;
     double _canvasFront = 6.0f;
     double _canvasBack = 0.0f;
+    double _viewAngle = 2 * PI / 3;
+    double _spinAngle = 0.0f;
 
     // 红蓝框
     bool _rbBoxEnabled = true;
@@ -82,25 +86,7 @@ private:
     double _blueBottomRightX = 2.0f;
     double _blueBottomRightY = 1.5f;
 
-    // 视野角
-    double _viewAngle = 2 * PI / 3;
-    // 旋转角
-    double _spinAngle = 0.0f;
-
-    QCPGraph *_graphPointCloud = nullptr;
-
-#if defined(__linux__)
-    QString _portNameUART = "/dev/ttyACM0";
-    QString _portNameAUX = "/dev/ttyACM1";
-#elif defined(_WIN32)
-    QString _portNameUART = "COM3";
-    QString _portNameAUX = "COM4";
-#endif
-
-
-
-    QString _pathToConfig= "/home/kristoffer/Workspace/Qt/lab0011-pplcount/lab0011_pplcount_gui/mmw_pplcount_demo_default.cfg";
-
+    // 绘制背景的控件
     QCPItemRect *_rectRed0 = nullptr;
     QCPItemRect *_rectRed1 = nullptr;
     QCPItemRect *_rectBlue0 = nullptr;
@@ -111,9 +97,21 @@ private:
     QCPItemLine *_bgLine11 = nullptr;
     QCPItemCurve *_bgArc0 = nullptr;
     QCPItemCurve *_bgArc1 = nullptr;
+    // 绘制目标的容器
+    QCPGraph *_graphPointCloud = nullptr;
     QCPGraph *_graphsPointTrace[MAX_GRAPH_NUM];
     QCPGraph *_graphsTargetTrack[MAX_GRAPH_NUM];
 
+    // 默认配置文件路径
+    QString _pathToConfig= "./mmw_pplcount_demo_default.cfg";
+    // 串口设置
+#if defined(__linux__)
+    QString _portNameUART = "/dev/ttyACM0";
+    QString _portNameAUX = "/dev/ttyACM1";
+#elif defined(_WIN32)
+    QString _portNameUART = "COM3";
+    QString _portNameAUX = "COM4";
+#endif
 };
 
 #endif // MAINWINDOW_H
