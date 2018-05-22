@@ -86,17 +86,6 @@ private:
     double _blueBottomRightX = 2.0f;
     double _blueBottomRightY = 1.5f;
 
-    // 绘制背景的控件
-    QCPItemRect *_rectRed0 = nullptr;
-    QCPItemRect *_rectRed1 = nullptr;
-    QCPItemRect *_rectBlue0 = nullptr;
-    QCPItemRect *_rectBlue1 = nullptr;
-    QCPItemLine *_bgLine00 = nullptr;
-    QCPItemLine *_bgLine10 = nullptr;
-    QCPItemLine *_bgLine01 = nullptr;
-    QCPItemLine *_bgLine11 = nullptr;
-    QCPItemCurve *_bgArc0 = nullptr;
-    QCPItemCurve *_bgArc1 = nullptr;
     // 绘制目标的容器
     QCPGraph *_graphPointCloud = nullptr;
     QCPGraph *_graphsPointTrace[MAX_GRAPH_NUM];

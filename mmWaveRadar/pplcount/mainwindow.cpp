@@ -118,16 +118,6 @@ MainWindow::MainWindow(QWidget *parent) :
     qDebug() << "数据端口:" << _portNameAUX;
 
     radar = new MmWaveRadar(_portNameUART, _portNameAUX);
-//    _rectRed0 = new QCPItemRect(ui->plotPointCloud);
-//    _rectRed1 = new QCPItemRect(ui->plotPeopleCount);
-//    _rectBlue0 = new QCPItemRect(ui->plotPointCloud);
-//    _rectBlue1 = new QCPItemRect(ui->plotPeopleCount);
-    _bgLine00 = new QCPItemLine(ui->plotPointCloud);
-    _bgLine10 = new QCPItemLine(ui->plotPeopleCount);
-    _bgLine01 = new QCPItemLine(ui->plotPointCloud);
-    _bgLine11 = new QCPItemLine(ui->plotPeopleCount);
-    _bgArc0 = new QCPItemCurve(ui->plotPointCloud);
-    _bgArc1 = new QCPItemCurve(ui->plotPeopleCount);
 
     this->_drawBackground();
     this->_drawBlueBox();
@@ -186,13 +176,6 @@ MainWindow::~MainWindow()
     delete radar;
     delete _graphPointCloud;
 
-    delete _bgLine00;
-    delete _bgLine01;
-    delete _bgLine10;
-    delete _bgLine11;
-    delete _bgArc0;
-    delete _bgArc1;
-
     for (int i = 0; i < MAX_GRAPH_NUM; ++i) {
         delete _graphsTargetTrack[i];
         delete _graphsPointTrace[i];
@@ -209,6 +192,14 @@ void MainWindow::_drawBackground()
     double remAngle = PI/2 - angle;
     double x, y, a, b;
     double _bgRadius = std::min(this->_canvasLeft, this->_canvasFront);
+
+    static QCPItemLine *_bgLine00 = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *_bgLine10 = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemLine *_bgLine01 = new QCPItemLine(ui->plotPointCloud);
+    static QCPItemLine *_bgLine11 = new QCPItemLine(ui->plotPeopleCount);
+    static QCPItemCurve *_bgArc0 = new QCPItemCurve(ui->plotPointCloud);
+    static QCPItemCurve *_bgArc1 = new QCPItemCurve(ui->plotPeopleCount);
+
 
     assert(_bgLine00 != nullptr);
     assert(_bgLine01 != nullptr);
@@ -281,35 +272,6 @@ void MainWindow::_drawBackground()
 
 void MainWindow::_drawRedBox(QPen pen)
 {
-//    double x, y, a, b;
-
-//    assert(_rectRed0 != nullptr);
-//    assert(_rectRed1 != nullptr);
-
-//    if (_rbBoxEnabled) {
-//        _rectRed0->setPen(pen);
-//        _rectRed1->setPen(pen);
-//    } else {
-//        //隐藏
-//        _rectRed0->setPen(QPen(Qt::transparent));
-//        _rectRed1->setPen(QPen(Qt::transparent));
-//    }
-
-//    a = _redTopLeftX;
-//    b = _redTopLeftY;
-//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-//    y = b*cos(_spinAngle)+a*sin(_spinAngle);
-//    _rectRed0->topLeft->setCoords(x, y);
-//    _rectRed1->topLeft->setCoords(x, y);
-
-//    a = _redBottomRightX;
-//    b = _redBottomRightY;
-//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-//    _rectRed0->bottomRight->setCoords(x, y);
-//    _rectRed1->bottomRight->setCoords(x, y);
-
-
     double x, y;
     static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
     static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
@@ -405,33 +367,6 @@ bool MainWindow::_isInBlueBox(double x, double y)
 
 void MainWindow::_drawBlueBox(QPen pen)
 {
-//    double x, y, a, b;
-
-//    assert(_rectBlue0 != nullptr);
-//    assert(_rectBlue1 != nullptr);
-
-//    if (_rbBoxEnabled) {
-//        this->_rectBlue0->setPen(pen);
-//        this->_rectBlue1->setPen(pen);
-//    } else {
-//        this->_rectBlue0->setPen(QPen(Qt::transparent));
-//        this->_rectBlue1->setPen(QPen(Qt::transparent));
-//    }
-
-//    a = _blueTopLeftX;
-//    b = _blueTopLeftY;
-//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-//    _rectBlue0->topLeft->setCoords(x, y);
-//    _rectBlue1->topLeft->setCoords(x, y);
-//    a = _blueBottomRightX;
-//    b = _blueBottomRightY;
-//    x = a*cos(_spinAngle) - b*sin(_spinAngle);
-//    y = b*cos(_spinAngle) + a*sin(_spinAngle);
-//    _rectBlue0->bottomRight->setCoords(x, y);
-//    _rectBlue1->bottomRight->setCoords(x, y);
-
-
     double x, y;
     static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
     static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
@@ -849,4 +784,3 @@ void MainWindow::_parseTartgetIdx(const char *tlv)
 {
 
 }
-
