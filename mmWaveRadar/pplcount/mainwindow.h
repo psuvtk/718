@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSerialPort>
 #include <cmath>
+#include <memory>
 
 #include "mmwaveconfig.h"
 #include "radarpacket.h"
@@ -11,7 +12,11 @@
 
 
 const double PI = std::acos(-1);
-#define MAX_GRAPH_NUM 64
+
+//设置太大容易出错
+#define MAX_GRAPH_NUM 16
+
+// 绘图不同目标使用的颜色
 constexpr Qt::GlobalColor TargetColor[10] = {Qt::red, Qt::darkCyan, Qt::darkGreen,  Qt::darkMagenta, Qt::green,
                                                    Qt::darkRed, Qt::cyan, Qt::darkYellow, Qt::magenta, Qt::yellow};
 
@@ -41,6 +46,7 @@ public:
     void _parseTartget(const char *tlv);
     void _parsePoint(const char *tlv);
     void _parseTartgetIdx(const char *tlv);
+
     // 多线程监听
     static void listen_wrapper(MainWindow *p);
 
@@ -87,12 +93,19 @@ private:
     double _blueBottomRightY = 1.5f;
 
     // 绘制目标的容器
-    QCPGraph *_graphPointCloud = nullptr;
     QCPGraph *_graphsPointTrace[MAX_GRAPH_NUM];
     QCPGraph *_graphsTargetTrack[MAX_GRAPH_NUM];
 
+    QVector<double> trackerX[MAX_GRAPH_NUM];
+    QVector<double> trackerY[MAX_GRAPH_NUM];
+    bool isTrackerInUse[MAX_GRAPH_NUM];
+
+    QVector<double> preFrameX;
+    QVector<double> preFrameY;
+
     // 默认配置文件路径
     QString _pathToConfig= "./mmw_pplcount_demo_default.cfg";
+
     // 串口设置
 #if defined(__linux__)
     QString _portNameUART = "/dev/ttyACM0";

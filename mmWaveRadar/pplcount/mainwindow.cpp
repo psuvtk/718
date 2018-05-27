@@ -5,13 +5,14 @@
 #include "mmwaveconfig.h"
 #include "qcustomplot.h"
 
+
 #include <QSerialPortInfo>
 #include <QMessageBox>
 #include <QDebug>
 #include <cassert>
 #include <cmath>
 #include <thread>
-
+#include <memory>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -112,6 +113,7 @@ MainWindow::MainWindow(QWidget *parent) :
     _portNameAUX = ports[0].portName();
 #endif
     }
+
     qDebug() << "初始化...";
     qDebug() << "自动选择串口...";
     qDebug() << "配置端口: " << _portNameUART;
@@ -127,54 +129,39 @@ MainWindow::MainWindow(QWidget *parent) :
     for (int i = 0; i < MAX_GRAPH_NUM; i++) {
         auto color = TargetColor[i % 10];
 
-        ui->plotPeopleCount->addGraph();
-        _graphsTargetTrack[i] = ui->plotPeopleCount->graph(i);
+        _graphsTargetTrack[i] = ui->plotPeopleCount->addGraph();
         _graphsTargetTrack[i]->setLineStyle(QCPGraph::lsNone);
         _graphsTargetTrack[i]->setPen(QPen(QColor(color), 3));
         _graphsTargetTrack[i]->setBrush(QBrush(color, Qt::DiagCrossPattern));
         _graphsTargetTrack[i]->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 32));
 
-
-        ui->plotPointCloud->addGraph();
-        _graphsPointTrace[i] = ui->plotPointCloud->graph(i);
+        _graphsPointTrace[i] = ui->plotPointCloud->addGraph();;
         _graphsPointTrace[i]->setLineStyle(QCPGraph::lsNone);
         _graphsPointTrace[i]->setPen(QColor(color));
         _graphsPointTrace[i]->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
     }
 
-    ui->plotPointCloud->addGraph();
-    this->_graphPointCloud = ui->plotPointCloud->graph(MAX_GRAPH_NUM);
-    _graphPointCloud->setLineStyle(QCPGraph::lsNone);
-    _graphPointCloud->setPen(QPen(Qt::darkGray));
-    _graphPointCloud->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
-
-
+    // 周期性绘制
     QTimer *timer=new QTimer(this);
     connect(timer, &QTimer::timeout, [&](){
-        for (int i =0; i< MAX_GRAPH_NUM; i++) {
-           _graphsPointTrace[i]->setData(QVector<double>(0), QVector<double>(0));
-           _graphsTargetTrack[i]->setData(QVector<double>(0), QVector<double>(0));
-        }
-    });//timeoutslot()为自定义槽
-    timer->start(3000);
+       this->_replot();
+    });
+    timer->start(10);
 
 
     ui->lcdBlue->setStyleSheet("color:blue;");
     ui->lcdRed->setStyleSheet("color:red;");
 
-
     setWindowTitle("基于毫米波雷达人员计数演示");
     setFixedSize(1440, 900);
-//    setFixedSize(1920, 1080);
-//    ui->plotPeopleCount->setGeometry(960,10, 960,480);
-//    ui->plotPointCloud->setGeometry(10,500, 960, 480);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete radar;
-    delete _graphPointCloud;
+    if (radar != nullptr) {
+        delete radar;
+    }
 
     for (int i = 0; i < MAX_GRAPH_NUM; ++i) {
         delete _graphsTargetTrack[i];
@@ -193,20 +180,19 @@ void MainWindow::_drawBackground()
     double x, y, a, b;
     double _bgRadius = std::min(this->_canvasLeft, this->_canvasFront);
 
-    static QCPItemLine *_bgLine00 = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *_bgLine10 = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *_bgLine01 = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *_bgLine11 = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemCurve *_bgArc0 = new QCPItemCurve(ui->plotPointCloud);
-    static QCPItemCurve *_bgArc1 = new QCPItemCurve(ui->plotPeopleCount);
+    static std::shared_ptr<QCPItemLine> _bgLine00{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> _bgLine01{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> _bgLine10{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> _bgLine11{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemCurve> _bgArc0{new QCPItemCurve(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemCurve> _bgArc1{new QCPItemCurve(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemCurve> _bgArc01{new QCPItemCurve(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemCurve> _bgArc11{new QCPItemCurve(ui->plotPeopleCount)};
 
-
-    assert(_bgLine00 != nullptr);
-    assert(_bgLine01 != nullptr);
-    assert(_bgLine10 != nullptr);
-    assert(_bgLine11 != nullptr);
-    assert(_bgArc0 != nullptr);
-    assert(_bgArc1 != nullptr);
+    _bgArc0->setPen(QPen(Qt::darkBlue));
+    _bgArc1->setPen(QPen(Qt::darkBlue));
+    _bgArc01->setPen(QPen(Qt::darkBlue));
+    _bgArc11->setPen(QPen(Qt::darkBlue));
 
     _bgLine00->setPen(QPen(Qt::darkBlue));
     _bgLine00->start->setCoords(0, 0);
@@ -230,8 +216,7 @@ void MainWindow::_drawBackground()
     _bgLine01->end->setCoords(x, y);
     _bgLine11->end->setCoords(x, y);
 
-    _bgArc0->setPen(QPen(Qt::darkBlue));
-    _bgArc1->setPen(QPen(Qt::darkBlue));
+
     // 贝叶斯曲线模拟圆弧(没有直接绘制圆弧的API)
     a = -_bgRadius*std::sin(angle);
     b = _bgRadius*std::cos(angle);
@@ -257,31 +242,59 @@ void MainWindow::_drawBackground()
     a = _bgRadius* (cos(remAngle) - h* sin(remAngle));
     b = _bgRadius * (h*cos(remAngle) + sin(remAngle));
     x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
     _bgArc0->endDir->setCoords(x, y);
     _bgArc1->endDir->setCoords(x, y);
+
+    //小圆弧
+    _bgRadius = 1.0;
+    a = -_bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc01->start->setCoords(x, y);
+    _bgArc11->start->setCoords(x, y);
+
+    a = _bgRadius*std::sin(angle);
+    b = _bgRadius*std::cos(angle);
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc01->end->setCoords(x, y);
+    _bgArc11->end->setCoords(x, y);
+
+    a = _bgRadius*((cos(_viewAngle)+h*sin(_viewAngle))*cos(remAngle) - sin(remAngle)*(sin(_viewAngle)-h*cos(_viewAngle)));
+    b = _bgRadius*(sin(_viewAngle)*cos(remAngle)+cos(_viewAngle)*sin(remAngle)-h*cos(_viewAngle)*cos(remAngle)+h*sin(_viewAngle)*sin(remAngle));
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle)+a*sin(_spinAngle);
+    _bgArc01->startDir->setCoords(x, y);
+    _bgArc11->startDir->setCoords(x, y);
+
+    a = _bgRadius* (cos(remAngle) - h* sin(remAngle));
+    b = _bgRadius * (h*cos(remAngle) + sin(remAngle));
+    x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    y = b*cos(_spinAngle) + a*sin(_spinAngle);
+    _bgArc01->endDir->setCoords(x, y);
+    _bgArc11->endDir->setCoords(x, y);
 
     double dx = 0.5;
     ui->plotPointCloud->xAxis->setRange(-_canvasLeft-dx, _canvasRight+dx);
     ui->plotPeopleCount->xAxis->setRange(-_canvasLeft-dx, _canvasRight+dx);
     ui->plotPeopleCount->yAxis->setRange(_canvasBack, _canvasFront);
     ui->plotPointCloud->yAxis->setRange(_canvasBack, _canvasFront);
-
-
 }
 
 void MainWindow::_drawRedBox(QPen pen)
 {
     double x, y;
-    static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineLeft = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineRight = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineTopPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineBottomPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineLeftPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineRightPoint = new QCPItemLine(ui->plotPointCloud);
 
+    static std::shared_ptr<QCPItemLine> lineTop{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineBottom{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineLeft{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineRight{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineTopPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineBottomPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineLeftPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineRightPoint{new QCPItemLine(ui->plotPointCloud)};
 
     if (_rbBoxEnabled) {
         lineTop->setPen(pen);
@@ -328,55 +341,21 @@ void MainWindow::_drawRedBox(QPen pen)
     lineLeft->start->setCoords(x, y);
     lineBottomPoint->end->setCoords(x, y);
     lineLeftPoint->start->setCoords(x, y);
-
-
 }
 
-void MainWindow::_rotateCoord(double a, double b, double *x, double *y)
-{
-    *x = a*cos(_spinAngle) - b*sin(_spinAngle);
-    *y = b*cos(_spinAngle) + a*sin(_spinAngle);
-}
-
-bool MainWindow::_isInRedBox(double x, double y)
-{
-    double a, b;
-    // rotate back
-    a = x*cos(_spinAngle) + y*sin(_spinAngle);
-    b = y*cos(_spinAngle) - x*sin(_spinAngle);
-
-    return  a > _redTopLeftX
-            && a < _redBottomRightX
-            && b > _redBottomRightY
-            && b < _redTopLeftY;
-
-}
-
-bool MainWindow::_isInBlueBox(double x, double y)
-{
-    double a, b;
-    // rotate back
-    a = x*cos(_spinAngle) + y*sin(_spinAngle);
-    b = y*cos(_spinAngle) - x*sin(_spinAngle);
-
-    return  a > _blueTopLeftX
-            && a < _blueBottomRightX
-            && b > _blueBottomRightY
-            && b < _blueTopLeftY;
-}
 
 void MainWindow::_drawBlueBox(QPen pen)
 {
     double x, y;
-    static QCPItemLine *lineTop = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineBottom = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineLeft = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineRight = new QCPItemLine(ui->plotPeopleCount);
-    static QCPItemLine *lineTopPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineBottomPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineLeftPoint = new QCPItemLine(ui->plotPointCloud);
-    static QCPItemLine *lineRightPoint = new QCPItemLine(ui->plotPointCloud);
 
+    static std::shared_ptr<QCPItemLine> lineTop{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineBottom{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineLeft{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineRight{new QCPItemLine(ui->plotPeopleCount)};
+    static std::shared_ptr<QCPItemLine> lineTopPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineBottomPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineLeftPoint{new QCPItemLine(ui->plotPointCloud)};
+    static std::shared_ptr<QCPItemLine> lineRightPoint{new QCPItemLine(ui->plotPointCloud)};
 
     if (_rbBoxEnabled) {
         lineTop->setPen(pen);
@@ -425,13 +404,44 @@ void MainWindow::_drawBlueBox(QPen pen)
     lineLeftPoint->start->setCoords(x, y);
 }
 
+
+void MainWindow::_rotateCoord(double a, double b, double *x, double *y)
+{
+    *x = a*cos(_spinAngle) - b*sin(_spinAngle);
+    *y = b*cos(_spinAngle) + a*sin(_spinAngle);
+}
+
+bool MainWindow::_isInRedBox(double x, double y)
+{
+    double a, b;
+    // rotate back
+    a = x*cos(_spinAngle) + y*sin(_spinAngle);
+    b = y*cos(_spinAngle) - x*sin(_spinAngle);
+
+    return     a > _redTopLeftX
+            && a < _redBottomRightX
+            && b > _redBottomRightY
+            && b < _redTopLeftY;
+}
+
+bool MainWindow::_isInBlueBox(double x, double y)
+{
+    double a, b;
+    // rotate back
+    a = x*cos(_spinAngle) + y*sin(_spinAngle);
+    b = y*cos(_spinAngle) - x*sin(_spinAngle);
+
+    return     a > _blueTopLeftX
+            && a < _blueBottomRightX
+            && b > _blueBottomRightY
+            && b < _blueTopLeftY;
+}
+
 void MainWindow::_replot()
 {
     ui->plotPointCloud->replot();
     ui->plotPeopleCount->replot();
 }
-
-
 
 
 void MainWindow::queryArea(double *left, double *right, double *front, double *back)
@@ -508,7 +518,6 @@ void MainWindow::on_btnRadarOff_clicked()
                               "错误：不能停止雷达，请重试！");
         qDebug() << "Fatal: cant stop radar.";
     }
-
 }
 
 
@@ -520,7 +529,6 @@ void MainWindow::on_btnSendConfig_clicked()
         ui->btnStartDetect->setEnabled(true);
         ui->btnSendConfig->setEnabled(false);
     }
-
 
     // 针对第一次发送 会出现 不是 CLI Command
     QByteArray radarRetStr;
@@ -539,9 +547,6 @@ void MainWindow::on_btnSendConfig_clicked()
     qDebug() << "[+] 成功配置！";
 
     ui->btnSendConfig->setStyleSheet("background-color:green;color: white;");
-    ui->btnSendConfig->setEnabled(false);
-    ui->btnStartDetect->setEnabled(true);
-    ui->btnRadarOff->setEnabled(true);
 }
 
 
@@ -558,6 +563,7 @@ void MainWindow::listen_wrapper(MainWindow *p)
     QByteArray bufRecv;
     QByteArray bufFrame;
     qint64 skipLength;
+    qint32 nErr = 0;
 
     if (!p->radar->isAuxOpen()) {
         p->radar->openSerialAux();
@@ -568,15 +574,13 @@ void MainWindow::listen_wrapper(MainWindow *p)
     }
 
     const QByteArray SYNC = RadarPacket::getSync();
-//    qDebug() << "等待雷达数据";
-
 
 labelRecover:
     try{
         while (p->radar->waitForReadyRead()) {
-            bufRecv.append(p->radar->readAll());
-    //        qDebug() << "-----bufRecv: " << bufRecv.toHex() << "\n";
 
+            bufRecv.append(p->radar->readAll());
+            p->ui->lcdBytesAvaliable->display(QString::number(bufRecv.length()));
             // 尝试读取一帧
             if (bufRecv.startsWith(SYNC)) {
                 skipLength = bufRecv.indexOf(SYNC, 8);
@@ -587,12 +591,26 @@ labelRecover:
                 }
             } else {
                 skipLength = bufRecv.indexOf(SYNC);
-                // 一下两种情况可以规约成一种情况
+                // 以下两种情况可以规约成一种情况
                 if (skipLength != -1) {
                     qDebug() << "未检测到同步码元";
+                    nErr++;
+                    if (nErr > 8) {
+                        bufRecv.clear();
+                        bufFrame.clear();
+                        nErr = 0;
+                        goto labelRecover;
+                    }
                     continue;
                 } else {
                     bufRecv.clear();
+                    nErr++;
+                    if (nErr > 8) {
+                        bufRecv.clear();
+                        bufFrame.clear();
+                        nErr = 0;
+                        goto labelRecover;
+                    }
                     qDebug() << "未检测到同步码元" << "\n";
                     continue;
                 }
@@ -602,16 +620,20 @@ labelRecover:
             frame = bufFrame.data();
             if (bufFrame.length() == RadarPacket::getPacketLength(frame)) {
                 qDebug() << "有效数据包";
-                qDebug() << "Frame:"<< bufFrame.toHex() << "\n";
-
-                // do something
+                //解析帧
                 p->_parseFrame(frame);
-
                 bufRecv.remove(0, skipLength);
                 bufFrame.clear();
             } else {
                 bufRecv.remove(0, skipLength);
                 bufFrame.clear();
+                nErr++;
+                if (nErr > 8) {
+                    bufRecv.clear();
+                    bufFrame.clear();
+                    nErr = 0;
+                    goto labelRecover;
+                }
                 qDebug() << "无效数据包";
             }
         }
@@ -624,65 +646,34 @@ labelRecover:
 }
 
 
-
-// 给周青采集点云
-void MainWindow::collectPointCloud(const char *frame, int nTLVs)
-{
-    quint32 type, nTlvBody, lengthTLV;
-    const char *tlv = RadarPacket::getFrameBody(frame);
-    FILE *fp = fopen("./points.txt", "a");
-
-    qDebug() << "\nTimestamp: "<< RadarPacket::getTimeStamp(frame);
-    for (int i = 0; i < nTLVs; i++){
-        type = RadarPacket::getTlvHeaderType(tlv);
-        lengthTLV = RadarPacket::getTlvHeaderLength(tlv);
-        nTlvBody = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizePointStruct;
-        qDebug() << "TLV Type: " << type;
-        qDebug() << "nTlvBody: " << nTlvBody;
-        QVector<double> x(nTlvBody), y(nTlvBody);
-        if (type == 0x0006){
-            qDebug() << "nPoints(Range - Azimuth): " << nTlvBody;
-            tlv += RadarPacket::sizeTlvHeader;
-            for (int j = 0; j < nTlvBody; j++, tlv+=RadarPacket::sizePointStruct) {
-                float range = RadarPacket::getPointRange(tlv);
-                float azimuth = RadarPacket::getPointAzimuth(tlv);
-
-                x[j] = range * std::sin(azimuth);
-                y[j] = range * std::abs(std::cos(azimuth));
-                qDebug() << "range, azi: " << range << azimuth;
-                qDebug() << "x, y: " << x[j]<< y[j];
-            }
-
-            _graphPointCloud->setData(x, y);
-            ui->plotPointCloud->replot();
-        } else {
-            fclose(fp);
-            return;
-        }
-    }
-}
-
 void MainWindow::_updateScene()
 {
     this->_drawBackground();
     this->_drawBlueBox();
     this->_drawRedBox();
-    this->_replot();
 }
 
 
 void MainWindow::_parseFrame(const char *frame)
 {
+    quint8 tlvLength;
+    quint8 nPts;
+    static auto graphPt = ui->plotPointCloud->addGraph();
+    graphPt->setLineStyle(QCPGraph::lsNone);
+    graphPt->setPen(QPen(Qt::darkGray));
+    graphPt->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
+
     quint32 lengthTLV;
     RadarPacket::TLVTYPE type;
 
     const char *tlv = RadarPacket::getFrameBody(frame);
     quint32 nTLVs = RadarPacket::getNumTLVs(frame);
 
-    for (int i = 0; i < nTLVs; i++, tlv += lengthTLV){
-        type = RadarPacket::getTlvHeaderType(tlv);
-        lengthTLV = RadarPacket::getTlvHeaderLength(tlv);
+    ui->lcdFrameId->display(QString::number(RadarPacket::getFrameNumber(frame)));
 
+    for (int i = 0; i < nTLVs; i++, tlv += lengthTLV){
+        type = RadarPacket::getTlvType(tlv);
+        lengthTLV = RadarPacket::getTlvLength(tlv);
 
         switch (type) {
         case RadarPacket::TLVTYPE::POINT_CLOUD_2D:  qDebug() << "点云";
@@ -699,60 +690,74 @@ void MainWindow::_parseFrame(const char *frame)
 }
 
 
-
-void MainWindow::_parsePoint(const char *tlv)
+void MainWindow::_parsePoint(const char *tlvPtCloud)
 {
-    quint32 lengthTLV = RadarPacket::getTlvHeaderLength(tlv);
-    quint32 nTlvBody = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizePointStruct;
-    QVector<double> x(nTlvBody), y(nTlvBody);
+    static auto ptCloud = ui->plotPointCloud->addGraph();  //绘制点云
+    ptCloud->setLineStyle(QCPGraph::lsNone);
+    ptCloud->setPen(QPen(Qt::darkGray));
+    ptCloud->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
 
-//    qDebug() << "nPoints(Range - Azimuth): " << nTlvBody;
-    tlv += RadarPacket::sizeTlvHeader;
-    for (int j = 0; j < nTlvBody; j++, tlv+=RadarPacket::sizePointStruct) {
-        float range = RadarPacket::getPointRange(tlv);
-        float azimuth = RadarPacket::getPointAzimuth(tlv);
+    quint32 lengthTLV = RadarPacket::getTlvLength(tlvPtCloud);
+    quint32 nPts = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizePointStruct;
+    QVector<double> x(nPts), y(nPts);
+
+    // 使tlv指向body
+    tlvPtCloud += RadarPacket::sizeTlvHeader;
+    ui->lcdNumPoints->display(QString::number(nPts));
+
+    for (int j = 0; j < nPts; j++, tlvPtCloud+=RadarPacket::sizePointStruct) {
+        float range = RadarPacket::getPointRange(tlvPtCloud);
+        float azimuth = RadarPacket::getPointAzimuth(tlvPtCloud);
 
         x[j] = range * std::sin(azimuth);
         y[j] = range * std::abs(std::cos(azimuth));
-//        qDebug() << "range, azi: " << range << azimuth;
-//        qDebug() << "x, y: " << x[j]<< y[j];
     }
 
-    _graphPointCloud->setData(x, y);
-    ui->plotPointCloud->replot();
+    // point cloud returned by detection layer
+    ptCloud->setData(x, y);
+    preFrameX = x;
+    preFrameY = y;
 }
 
 
-void MainWindow::_parseTartget(const char *tlv)
+void MainWindow::_parseTartget(const char *tlvTarget)
 {
-    static QVector<double> traceX(128, 0), traceY(128, 0);     //轨迹
-
-    quint32 lengthTLV = RadarPacket::getTlvHeaderLength(tlv);
-    quint32 nTlvBody = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizeTargetStruct;
-    QVector<double> x(nTlvBody), y(nTlvBody);
+    quint32 lengthTLV = RadarPacket::getTlvLength(tlvTarget);
+    quint32 nTarget = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizeTargetStruct;
+    QVector<double> x(nTarget), y(nTarget); //计数
 
     // 判断红蓝并判断人数、显示
-    ui->lcdTotal->display(QString::number(nTlvBody));
+    ui->lcdTotal->display(QString::number(nTarget));
     int r=0, b=0;
 
-    tlv += RadarPacket::sizeTlvHeader;
-    for (int j = 0; j < nTlvBody; j++, tlv+=RadarPacket::sizeTargetStruct) {
-        x[j] = RadarPacket::getTargetPosX(tlv);
-        y[j] = RadarPacket::getTargetPosY(tlv);
-        quint32 tid = RadarPacket::getTargetTid(tlv);
-        qDebug() << "x[j]:" << x[j];
-        qDebug() << "y[j]:" << y[j];
+    for (int i=0; i < MAX_GRAPH_NUM; i++) {
+         _graphsTargetTrack[i % MAX_GRAPH_NUM]->data().clear();
+        if(!isTrackerInUse[i]){
+            _graphsPointTrace[i % MAX_GRAPH_NUM]->data().clear();
+        }
+        isTrackerInUse[i] = false;
+    }
 
+    tlvTarget += RadarPacket::sizeTlvHeader;
+    for (int j = 0; j < nTarget; j++, tlvTarget+=RadarPacket::sizeTargetStruct) {
+        x[j] = RadarPacket::getTargetPosX(tlvTarget);
+        y[j] = RadarPacket::getTargetPosY(tlvTarget);
+        quint32 tid = RadarPacket::getTargetTid(tlvTarget);
 
-        traceX.push_back(x[j]);
-        traceY.push_back(y[j]);
+        tid %= MAX_GRAPH_NUM;
 
-        if (!traceX.isEmpty() && !traceY.isEmpty()) {
-            traceX.pop_front();
-            traceY.pop_front();
+        if (trackerX[tid].length() > 128 && trackerY[tid].length() > 128){
+            trackerX[tid].pop_front();
+            trackerY[tid].pop_front();
+            trackerX[tid].push_back(x[j]);
+            trackerY[tid].push_back(y[j]);
+        } else {
+            trackerX[tid].push_back(x[j]);
+            trackerY[tid].push_back(y[j]);
         }
 
-        _graphsPointTrace[tid % MAX_GRAPH_NUM]->setData(traceX, traceY);
+        isTrackerInUse[tid] = true;
+        _graphsPointTrace[tid]->setData(trackerX[tid], trackerY[tid]);
         _graphsTargetTrack[j % MAX_GRAPH_NUM]->setData(QVector<double>(1, x[j]), QVector<double>(1, y[j]));
 
         if (_isInRedBox(x[j], y[j])) {
@@ -773,14 +778,67 @@ void MainWindow::_parseTartget(const char *tlv)
         } else {
             this->_drawBlueBox();
         }
-
-        this->_replot();
     }
     ui->lcdRed->display(QString::number(r));
     ui->lcdBlue->display(QString::number(b));
 }
 
-void MainWindow::_parseTartgetIdx(const char *tlv)
-{
 
+void MainWindow::_parseTartgetIdx(const char *tlvIdx)
+{
+    static auto graphAssociate = ui->plotPeopleCount->addGraph();
+    graphAssociate->setLineStyle(QCPGraph::lsNone);
+    graphAssociate->setPen(QPen(Qt::darkGray));
+    graphAssociate->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 2));
+
+    quint8 lengthTLV = RadarPacket::getTlvLength(tlvIdx);
+    quint8 nIdx = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizeIndexStruct;
+    QVector<double> associateX;
+    QVector<double> associateY;
+    tlvIdx += RadarPacket::sizeTlvHeader;
+    for (int j =0; j<nIdx && preFrameX.length() >=nIdx; j++, tlvIdx+=8){
+        qDebug() << "x[j]:" << preFrameX[j];
+        qDebug() << "y[j]:" << preFrameY[j];
+        if (RadarPacket::getTargetId(tlvIdx) < 249) {
+            associateX << preFrameX[j];
+            associateY << preFrameY[j];
+        }
+    }
+    graphAssociate->setData(associateX, associateY);
+}
+
+
+// 给周青采集点云
+void MainWindow::collectPointCloud(const char *frame, int nTLVs)
+{
+    quint32 type, nTlvBody, lengthTLV;
+    const char *tlv = RadarPacket::getFrameBody(frame);
+    FILE *fp = fopen("./points.txt", "a");
+
+    qDebug() << "\nTimestamp: "<< RadarPacket::getTimeStamp(frame);
+    for (int i = 0; i < nTLVs; i++){
+        type = RadarPacket::getTlvType(tlv);
+        lengthTLV = RadarPacket::getTlvLength(tlv);
+        nTlvBody = (lengthTLV - RadarPacket::sizeTlvHeader) / RadarPacket::sizePointStruct;
+        qDebug() << "TLV Type: " << type;
+        qDebug() << "nTlvBody: " << nTlvBody;
+        QVector<double> x(nTlvBody), y(nTlvBody);
+        if (type == 0x0006){
+            qDebug() << "nPoints(Range - Azimuth): " << nTlvBody;
+            tlv += RadarPacket::sizeTlvHeader;
+            for (int j = 0; j < nTlvBody; j++, tlv+=RadarPacket::sizePointStruct) {
+                float range = RadarPacket::getPointRange(tlv);
+                float azimuth = RadarPacket::getPointAzimuth(tlv);
+
+                x[j] = range * std::sin(azimuth);
+                y[j] = range * std::abs(std::cos(azimuth));
+                qDebug() << "range, azi: " << range << azimuth;
+                qDebug() << "x, y: " << x[j]<< y[j];
+            }
+
+        } else {
+            fclose(fp);
+            return;
+        }
+    }
 }
