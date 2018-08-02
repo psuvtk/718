@@ -1,0 +1,14 @@
+# 雷达，远程PC，以及Arm上两个网卡的ip地址
+ipRadar=192.168.2.100
+ipArmRadar=192.168.2.23
+
+ipPc=10.236.137.158
+ipArmPc=10.246.255.104
+
+
+# 远程PC分别使用两个Socket
+portRadar=7
+portArmRadar=10007
+
+portArmPcForRadar=8080
+portArmPcForAis=9090
