@@ -184,7 +184,7 @@ void initMcb() {
     // 打开串口
     gMcbInst.ais_serial_fd = open(DEVICE_AIS, O_RDONLY | O_NOCTTY | O_NDELAY);
     if ( gMcbInst.ais_serial_fd < 0 ) {
-        perror("ais serial port open failed");
+        perror("AIS serial port open failed");
         exit(-1);
     }
     // 初始化工作状态
@@ -193,9 +193,6 @@ void initMcb() {
 
 
     printf("[+] Init success.\n");
-#ifdef DEBUG
-    // 内省
-#endif
 }
 
 int parseConfig(FILE *fd)
@@ -491,21 +488,34 @@ void* ctrlPc2Ais(void *pParams) {
                 buf_wrap = MyUtils::TransParaFactoryUtil::Wrap(MyUtils::TransParaFactoryUtil::ResType::AisPowerOnRes);
 
                 // 做一些事情
-                // TODO
                 int baudrate = getBaudRate(obj["attach"]);
 
                 configSerialPort(baudrate);
                 gMcbInst.status_ais = STATUS_ON;
 
+                char sb[4]={0x01, 0x02, 0x03, 0x04};
                 //udpClient.SendToPc(bufPC); 反馈给远程pc
-                sendto(
-                    gMcbInst.socket_arm_pc_for_radar,
+                int len = sendto(
+                    gMcbInst.socket_arm_pc_for_ais,
                     buf_wrap.data(),
                     buf_wrap.size(),
                     0,
-                    (struct sockaddr *)&gMcbInst.addr_pc_for_radar,
-                    sizeof(gMcbInst.addr_pc_for_radar)
+                    (struct sockaddr *)&gMcbInst.addr_pc_for_ais,
+                    sizeof(gMcbInst.addr_pc_for_ais)
                 );
+                // int len = sendto(
+                //     gMcbInst.socket_arm_pc_for_ais,
+                //     sb,
+                //     4,
+                //     0,
+                //     (struct sockaddr *)&gMcbInst.addr_pc_for_ais,
+                //     sizeof(gMcbInst.addr_pc_for_ais)
+                // );
+
+                printf("\n[#]%d\n\n\n", len);
+
+
+
             }
             //雷达下电信号
             else if (obj["type"] == "aispoweroffreq")
@@ -517,12 +527,12 @@ void* ctrlPc2Ais(void *pParams) {
 
                 // 反馈给远程pc
                 sendto(
-                    gMcbInst.socket_arm_pc_for_radar,
+                    gMcbInst.socket_arm_pc_for_ais,
                     buf_wrap.data(),
                     buf_wrap.size(),
                     0,
-                    (struct sockaddr *)&gMcbInst.addr_pc_for_radar,
-                    sizeof(gMcbInst.addr_pc_for_radar)
+                    (struct sockaddr *)&gMcbInst.addr_pc_for_ais,
+                    sizeof(gMcbInst.addr_pc_for_ais)
                 );
             }
         }
@@ -543,7 +553,7 @@ void* forwardAis2Pc(void *pParams) {
     bzero(buf_ais, BUFLEN_AIS);
     buf_send = buf_send_ping;
     forever {
-#ifndef DEBUG
+#ifndef DEBUG_NO_DEVICE
         if (gMcbInst.status_ais == STATUS_OFF) {
             sleep(POLLING_INTERVAL);
             continue;
@@ -552,11 +562,11 @@ void* forwardAis2Pc(void *pParams) {
 
         if ( (read_len = read(gMcbInst.ais_serial_fd, buf_ais, BUFLEN_AIS)) > 0 ) {
 #ifdef DEBUG_NO_DEVICE // 测试UDP用
-            // printf("[DEBUG] [THREAD forwardAis2Pc] :: read %ld bytes from searial port.\n", read_len);
-            // for (int i =0; i<read_len;i++) {
-            //     printf("%c", buf_ais[i]);
-            // }
-            // fflush(stdout);
+            printf("[DEBUG] [THREAD forwardAis2Pc] :: read %ld bytes from searial port.\n", read_len);
+            for (int i =0; i<read_len;i++) {
+                printf("%c", buf_ais[i]);
+            }
+            fflush(stdout);
 
             if ( (BUFLEN_AIS - cur_index) >= read_len ) {
                 memcpy(buf_send+cur_index, buf_ais, read_len);
@@ -571,10 +581,12 @@ void* forwardAis2Pc(void *pParams) {
             continue;
 #endif
 
-
+#ifdef DEBUG
+            printf("[DEBUG] [THREAD forwardAis2Pc] :: ");
             for (int i = 0; i < read_len; i++) {
                     printf("%c", buf_ais[i]);
             }
+#endif
             if ( (BUFLEN_AIS - cur_index) >= read_len ) {
                 memcpy(buf_send+cur_index, buf_ais, read_len);
                 cur_index+=read_len;

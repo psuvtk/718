@@ -18,7 +18,7 @@ std::string MyUtils::TransParaFactoryUtil::DESEncrypt(const std::string& str, co
 	const char* ch_value = str.c_str();
 	const char* ch_key = key.c_str();
 	unsigned int paddinglen = getPaddingLength(str);
-	
+
 	char *out = (char *)malloc(sizeof(char)* paddinglen);
 	_DES.RunPad(2, ch_value, str.length(), out, paddinglen);
 
@@ -145,7 +145,7 @@ std::vector<byte> MyUtils::TransParaFactoryUtil::Base64Decode(const std::string&
             i = 0;
         }
     }
-    
+
     if (i) {
         for (j = i; j < 4; j++)
             char_array_4[j] = 0;
@@ -222,6 +222,12 @@ std::vector<byte> MyUtils::TransParaFactoryUtil::Wrap(const ResType& restype)
     case ResType::RadarPowerOffRes:
         obj.insert(std::make_pair("type", "radarpoweroffres"));
         break;
+    case ResType::AisPowerOnRes:
+        obj.insert(std::make_pair("type", "aispoweronres"));
+        break;
+    case ResType::AisPowerOffRes:
+        obj.insert(std::make_pair("type", "aispoweroffres"));
+        break;
     default:
         return buffer;
     }
@@ -267,7 +273,7 @@ bool MyUtils::TransParaFactoryUtil::TryParse(const std::vector<byte>& buffer, st
         return false;
 
     auto str = DESDecrypt(std::string((char*)&buffer.data()[8]));
-    
+
     auto vec = SplitString(str, "/");
 	vec.pop_back();
     std::for_each(vec.begin(), vec.end(), [&obj](std::string item)
