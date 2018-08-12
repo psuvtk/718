@@ -3,13 +3,18 @@ ipRadar=192.168.2.100
 ipArmRadar=192.168.2.37
 
 # ipPc(可选，起始设置了也没啥用会被到来的请求覆盖掉)
-ipPc=10.246.45.131
-ipArmPc=192.168.2.128
+ipPc=192.168.3.100
+ipArmPc=192.168.3.37
 
 
 # 远程PC分别使用两个Socket
-portRadar=7
-portArmRadar=8080
+portArmToRadar=7
+portRadarToArm=8080
 
-portArmPcForRadar=7
-portArmPcForAis=8081
+
+portPcToArmForCtrl=7
+portArmToPcForRadar=8080
+portArmToPcForAis=8081
+
+
+

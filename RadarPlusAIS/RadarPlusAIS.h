@@ -6,8 +6,6 @@
 #include <string.h> // strtok()
 #include <ctype.h> // isspace()
 #include <unistd.h> // sleep()
-#include <assert.h>
-
 
 #include <fcntl.h> //O_RDWR
 #include <termios.h>
@@ -21,8 +19,10 @@
 
 #include "TransParaFactoryUtil.h"
 
-#define DEBUG 1
-// #define DEBUG_NO_DEVICE 1
+// 测试使用的
+// #define DEBUG 1
+// #define DISABLE_RIS 1
+// #define NO_REAL_SERVER 1
 
 #define IP_ADDR_LEN 16
 #define BUFLEN_PC_AIS    1024
@@ -64,7 +64,7 @@ typedef struct {
 #define STATUS_ON 1
 
 // 开启雷达、AIS 状态查询时间间隔
-#define POLLING_INTERVAL 8
+#define POLLING_INTERVAL 3
 
 #define forever for(;;)
 
@@ -72,8 +72,7 @@ typedef struct {
 typedef struct
 {
     int socket_arm_radar;
-    int socket_arm_pc_for_radar;
-    int socket_arm_pc_for_ais;
+    int socket_arm_pc;
 
     in_addr_t ip_radar;
     in_addr_t ip_pc;
@@ -82,15 +81,15 @@ typedef struct
 
     in_port_t port_radar;
     in_port_t port_arm_radar;
-    in_port_t port_arm_pc_for_ais;
-    in_port_t port_arm_pc_for_radar;
-
+	in_port_t port_pc2arm_for_ctrl;
+    in_port_t port_arm2pc_for_radar;
+    in_port_t port_arm2pc_for_ais;
+	
     struct sockaddr_in addr_radar;
     struct sockaddr_in addr_arm_radar;
+	struct sockaddr_in addr_arm_pc;
     struct sockaddr_in addr_pc_for_radar;
-    struct sockaddr_in addr_arm_pc_for_radar;
     struct sockaddr_in addr_pc_for_ais;
-    struct sockaddr_in addr_arm_pc_for_ais;
 
     int ais_serial_fd;
     int am335x_gpio_fd;
@@ -107,16 +106,13 @@ typedef struct
 } gMCB_t;
 
 void initMcb();
+int parseConfig(char *config_filename);
 
 void* forwardRadar2Pc(void* params);
 void* forwardAis2Pc(void* params);
-void* ctrlPc2Radar(void* params);
-void* ctrlPc2Ais(void* params);
-void* sendAsyncAis2Pc(void* params);
 
-int parseConfig(FILE *fd);
 // utils
-char* trimValue(char *s);
+char* trimStr(char *s);
 int getBaudRate(std::string encrypt_attach);
 int configSerialPort(int br);
 #endif //__RADARPLUSAIS_H__

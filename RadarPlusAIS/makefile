@@ -3,8 +3,8 @@ OBJ=RadarPlusAIS.cc TransParaFactoryUtil.cpp DES.cpp md5.cpp
 UnitTest_AIS_OBJ=TransParaFactoryUtil.cpp DES.cpp md5.cpp UnitTest_AIS.cc
 UnitTest_Radar_OBJ=TransParaFactoryUtil.cpp DES.cpp md5.cpp UnitTest_Radar.cc
 
-CC=g++
-LDFLAG=-lpthread
+CC=arm-linux-gnueabihf-g++
+LDFLAG=-lpthread --std=c++11
 
 
 RadarPlusAis.run: $(OBJ)
