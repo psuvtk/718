@@ -12,7 +12,6 @@ class Settings : public QObject
 {
     Q_OBJECT
 
-
 public:
     explicit Settings(QWidget *parent = 0);
     ~Settings();
@@ -24,6 +23,17 @@ public:
     void setStopBits(QSerialPort::StopBits sb);
     void setFlowControl(QSerialPort::FlowControl fc);
 
+    QString getPortName();
+    QSerialPort::BaudRate getBaudRate();
+    QSerialPort::DataBits getDataBits();
+    QSerialPort::Parity getParity();
+    QSerialPort::StopBits getStopBits();
+    QSerialPort::FlowControl getFlowControl();
+
+
+    void printInfo();
+    void readLocalSettings();
+    void writeLocalSettings();
 private:
     QString _portName;
     QSerialPort::BaudRate _baudRate;

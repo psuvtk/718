@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QThread>
 #include <QSerialPort>
+#include "settings.h"
 
 class UartThread : public QThread
 {
@@ -10,7 +11,7 @@ class UartThread : public QThread
 
 public:
     UartThread();
-
+    bool open(Settings *settings);
     void run();
 
 signals:
