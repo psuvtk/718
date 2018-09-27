@@ -16,31 +16,28 @@ public:
     explicit Settings(QWidget *parent = 0);
     ~Settings();
 
-    void setPortName(QString pn);
-    void setBaudRate(QSerialPort::BaudRate br);
-    void setDataBits(QSerialPort::DataBits db);
-    void setParity(QSerialPort::Parity p);
-    void setStopBits(QSerialPort::StopBits sb);
-    void setFlowControl(QSerialPort::FlowControl fc);
+    QString getPortNameUartPort();
+    qint32 getBaudRateUartPort();
+    void setPortNameUartPort(QString pn);
+    void setBaudRateUartPort(qint32 br);
 
-    QString getPortName();
-    QSerialPort::BaudRate getBaudRate();
-    QSerialPort::DataBits getDataBits();
-    QSerialPort::Parity getParity();
-    QSerialPort::StopBits getStopBits();
-    QSerialPort::FlowControl getFlowControl();
+    QString getPortNameDataPort();
+    qint32 getBaudRateDataPort();
+    void setPortNameDataPort(QString pn);
+    void setBaudRateDataPort(qint32 br);
 
 
     void printInfo();
     void readLocalSettings();
     void writeLocalSettings();
+
 private:
-    QString _portName;
-    QSerialPort::BaudRate _baudRate;
-    QSerialPort::DataBits _dataBits;
-    QSerialPort::Parity _parity;
-    QSerialPort::StopBits _stopBits;
-    QSerialPort::FlowControl _flowControl;
+    QString _portNameData;
+    qint32 _baudRateData;
+
+    QString _portNameUart;
+    qint32 _baudRateUart;
+
 };
 
 #endif // SETTINGS_H

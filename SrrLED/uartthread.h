@@ -18,7 +18,7 @@ signals:
     void speedChanged(qint64);
 
 private:
-    QSerialPort _device;
+    QSerialPort *_device;
 };
 
 #endif // UARTTHREAD_H
