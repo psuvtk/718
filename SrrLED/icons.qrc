@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>connect.svg</file>
+        <file>folder.svg</file>
+        <file>settings.svg</file>
+        <file>disconnect.svg</file>
+    </qresource>
+</RCC>

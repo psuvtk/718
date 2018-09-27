@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <QString>
 #include <QSettings>
 #include <QSerialPort>
 
@@ -26,6 +27,8 @@ public:
     void setPortNameDataPort(QString pn);
     void setBaudRateDataPort(qint32 br);
 
+    QString getConfigFilePath();
+    void setConfigFilePath(QString path);
 
     void printInfo();
     void readLocalSettings();
@@ -38,6 +41,7 @@ private:
     QString _portNameUart;
     qint32 _baudRateUart;
 
+    QString _configFilePath;
 };
 
 #endif // SETTINGS_H

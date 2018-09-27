@@ -7,6 +7,8 @@
 #include "uartthread.h"
 #include "settings.h"
 #include <QDebug>
+#include <QSerialPortInfo>
+#include <QFileDialog>
 
 namespace Ui {
 class MainWindow;
@@ -28,13 +30,15 @@ public:
     void keyPressEvent(QKeyEvent *event);
     void serialPortConfig();
 
-    bool startSensor();
-    bool stopSensor();
 
 public slots:
     void onSpeedChanged();
     void showAboutMessage();
 
+    void onActionOpenConfig();
+    void onActionSensorStart();
+    void onActionSensorStop();
+    void onActionSettings();
 
 private:
     Ui::MainWindow *ui;
@@ -43,6 +47,10 @@ private:
     QSerialPort *_portUart;
     QSerialPort *_portData;
     DeviceState _deviceState;
+
+    QAction *actionStopSensor;
+    QAction *actionStartSensor;
+    QAction *actionSettings;
 };
 
 #endif // MAINWINDOW_H

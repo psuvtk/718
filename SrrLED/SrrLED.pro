@@ -39,3 +39,6 @@ HEADERS += \
 FORMS += \
         mainwindow.ui \
     dialogpreference.ui
+
+RESOURCES += \
+    icons.qrc

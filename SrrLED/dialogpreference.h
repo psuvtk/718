@@ -2,6 +2,8 @@
 #define DIALOGPREFERENCE_H
 
 #include <QDialog>
+#include <QSerialPort>
+#include <QSerialPortInfo>
 #include "settings.h"
 
 namespace Ui {
@@ -20,6 +22,9 @@ private slots:
     void on_pbCancel_clicked();
 
     void on_pbSave_clicked();
+
+    void on_cbConfig_currentIndexChanged(int index);
+
 private:
     void fillComboBoxes();
 

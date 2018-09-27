@@ -45,6 +45,13 @@ qint32 Settings::getBaudRateDataPort() {
     return _baudRateData;
 }
 
+void Settings::setConfigFilePath(QString path) {
+    _configFilePath = path;
+}
+
+QString Settings::getConfigFilePath() {
+    return _configFilePath;
+}
 
 
 
