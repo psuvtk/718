@@ -30,6 +30,7 @@ public:
     void keyPressEvent(QKeyEvent *event);
     void serialPortConfig();
 
+    void dataPortOpened();
 
 public slots:
     void onSpeedChanged();
@@ -43,7 +44,8 @@ public slots:
 private:
     Ui::MainWindow *ui;
     Settings *_settings;
-    UartThread *_uartReadThread;
+    UartThread *_commThread;
+
     QSerialPort *_portUart;
     QSerialPort *_portData;
     DeviceState _deviceState;

@@ -11,8 +11,9 @@ class UartThread : public QThread
 
 public:
     UartThread();
-    bool open(Settings *settings);
+
     void run();
+    void setHandle(QSerialPort *_device);
 
 signals:
     void speedChanged(qint64);

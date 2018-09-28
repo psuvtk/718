@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setApplicationName("SrrLED");
 
     _settings = new Settings(this);
-    _uartReadThread = new UartThread;
+    _commThread = new UartThread;
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
 
@@ -60,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    _commThread->terminate();
+    _commThread->wait();
+
     delete ui;
     delete _settings;
 }
@@ -124,13 +127,16 @@ void MainWindow::onActionOpenConfig() {
 
 void MainWindow::onActionSensorStart() {
     if (_settings->getPortNameUartPort() == "") {
-        qDebug() << "Empty UartPort Name";
-        QMessageBox::critical(this,
-                              tr("Open UART Failed"),
-                              tr("Open UART Port Failed\nPlease Check Settings!"));
-        return;
+        serialPortConfig();
+        if (_settings->getPortNameUartPort() == "") {
+            qDebug() << "Empty UartPort Name";
+            QMessageBox::critical(this,
+                                  tr("Open UART Failed"),
+                                  tr("Open UART Port Failed\nPlease Check Settings!"));
+            return;
+        }
     }
-
+    qDebug() << _settings->getPortNameUartPort();
     _portUart->setPortName(_settings->getPortNameUartPort());
     _portUart->setBaudRate(QSerialPort::Baud115200);
     _portUart->setDataBits(QSerialPort::Data8);
@@ -139,16 +145,20 @@ void MainWindow::onActionSensorStart() {
     _portUart->setFlowControl(QSerialPort::NoFlowControl);
 
     QStringList cmds;
-    QByteArray readBuf;
-    cmds.append("advFrameCfg");
-    cmds.append("sensorStart");
-    if (_portUart->open(QIODevice::ReadWrite | QIODevice::Text)) {
+    cmds.append("advFrameCfg\n");
+    cmds.append("sensorStart\n");
+
+    if (_portUart->open(QIODevice::ReadWrite)) {
         for (QString cmd: cmds) {
+             QByteArray readBuf;
             _portUart->write(cmd.toLatin1());
-            _portUart->write("\n");
-            _portUart->waitForReadyRead(300);
-            QThread::msleep(10);
-            readBuf = _portUart->readAll();
+
+            // 等待全部返回数据，10ms超时
+            while (_portUart->waitForReadyRead(10)) {
+                readBuf.append(_portUart->readAll());
+            }
+
+            qDebug() << "Retruned: " << readBuf;
             if (QString(readBuf).contains("Done")) {
                 qDebug() << "Send Command => "
                          << cmd;
@@ -164,7 +174,7 @@ void MainWindow::onActionSensorStart() {
         }
         _portUart->close();
     } else {
-        qDebug() << "Open UART Port Failed.";
+        qDebug() << "open Open UART Port Failed.";
         QMessageBox::critical(this,
                               tr("Open UART Failed"),
                               tr("Failed to open UART port"));
@@ -181,7 +191,7 @@ void MainWindow::onActionSensorStart() {
         return;
     }
     _portData->setPortName(_settings->getPortNameDataPort());
-    _portData->setBaudRate(QSerialPort::Baud115200);
+    _portData->setBaudRate(921600);
     _portData->setDataBits(QSerialPort::Data8);
     _portData->setParity(QSerialPort::NoParity);
     _portData->setStopBits(QSerialPort::OneStop);
@@ -190,6 +200,7 @@ void MainWindow::onActionSensorStart() {
         actionStartSensor->setEnabled(false);
         actionStopSensor->setEnabled(true);
         actionSettings->setEnabled(false);
+        dataPortOpened();
         return;
     } else {
         QMessageBox::critical(this,
@@ -208,16 +219,19 @@ void MainWindow::onActionSensorStop() {
     _portUart->setFlowControl(QSerialPort::NoFlowControl);
 
     QStringList cmds;
-    QByteArray readBuf;
-    cmds.append("sensorStop");
-    cmds.append("sensorStop");
-    if (_portUart->open(QIODevice::ReadWrite | QIODevice::Text)) {
+    cmds.append("sensorStop\n");
+    cmds.append("sensorStop\n");
+    if (_portUart->open(QIODevice::ReadWrite)) {
         for (QString cmd: cmds) {
+            QByteArray readBuf;
             _portUart->write(cmd.toLatin1());
-            _portUart->write("\n");
-            _portUart->waitForReadyRead(300);
-            QThread::msleep(10); // 期待全部数据
-            readBuf = _portUart->readAll();
+
+            // 等待全部返回数据，10ms超时
+            while (_portUart->waitForReadyRead(10)) {
+               readBuf.append(_portUart->readAll());
+            }
+
+            qDebug() << readBuf;
             if (QString(readBuf).contains("Done")) {
                 qDebug() << "Send Command => "
                          << cmd;
@@ -251,4 +265,9 @@ void MainWindow::onActionSettings() {
     if (dlg.exec()) {
         _settings->printInfo();
     }
+}
+
+void MainWindow::dataPortOpened() {
+    _commThread->setHandle(_portData);
+    _commThread->start();
 }

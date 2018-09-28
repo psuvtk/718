@@ -28,13 +28,15 @@ SOURCES += \
         mainwindow.cpp \
     uartthread.cpp \
     settings.cpp \
-    dialogpreference.cpp
+    dialogpreference.cpp \
+    srrpacket.cpp
 
 HEADERS += \
         mainwindow.h \
     uartthread.h \
     settings.h \
-    dialogpreference.h
+    dialogpreference.h \
+    srrpacket.h
 
 FORMS += \
         mainwindow.ui \
