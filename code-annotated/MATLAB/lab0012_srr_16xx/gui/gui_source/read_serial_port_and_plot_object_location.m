@@ -376,6 +376,7 @@ end
 
 return
 
+% 
 function [] = readUartCallbackFcn(obj, event)
 global bytevecAcc;
 global bytevecAccLen;
@@ -627,7 +628,7 @@ detObj.numObj = 0;
 PA.x = [];
 PA.y = [];
 len_bytevec = length(bytevec);
-if len_bytevec < idx +4; 
+if len_bytevec < idx +4 
     idx = len_bytevec;
     return;
 end

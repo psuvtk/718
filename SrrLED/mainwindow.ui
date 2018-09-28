@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tabFakeLED">
      <attribute name="title">
@@ -41,9 +41,9 @@
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="tabDebug">
+    <widget class="QWidget" name="tabLog">
      <attribute name="title">
-      <string>Debug</string>
+      <string>Log</string>
      </attribute>
     </widget>
    </widget>

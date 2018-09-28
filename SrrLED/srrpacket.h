@@ -70,14 +70,14 @@ struct TL_t
 class SrrPacket {
     const quint32 HeaderLength = 40;
     const quint32 TlLength = 8;
-    const QByteArray SYNC = QByteArray::fromHex("0201040306050807");
 public:
     SrrPacket() = delete;
     explicit SrrPacket(const char *pSrrPacket);
 
-    void queryHeader();
+    void query();
+
     static QByteArray getSync() { return QByteArray::fromHex("0201040306050807");}
-    bool isSync();
+
     quint32 getVersion() { return *(quint32*)(_pSrrPacketHeader+8); }
     quint32 getTotalPacketLen() { return *(quint32*)(_pSrrPacketHeader+12); }
     quint32 getPlatform() { return *(quint32*)(_pSrrPacketHeader+16); }
@@ -95,15 +95,21 @@ public:
 //    getParkingAssistBins();
 //    getStatsInfo();
 private:
-    quint32 getTlvType(const char *pTlv) { return reinterpret_cast<quint32>(pTlv); }
-    quint32 getTlvLength(const char *pTlv) { return reinterpret_cast<quint32>(pTlv); }
+    quint32 getTlvType(const char *pTlv) { return *(qint32*)(pTlv); }
+    quint32 getTlvLength(const char *pTlv) { return *(qint32*)(pTlv+4); }
+
+    void extractDetObj();
+    void extractCluster();
+    void extractTracker();
+    void extractStatsInfo();
+    void extractParkingAssisBin();
 
 private:
     const char *_pSrrPacketHeader;
-    const char *_pSrrPacketBody;
+//    const char *_pSrrPacketBody;
 //    QList<__DetObj_t> _detObjs;
-//    QList<__Tracker_t> _trackers;
 //    QList<__Cluster_t> _clusters;
+//    QList<__Tracker_t> _trackers;
 //    QList<__ParkingAssistBin_t> _parkingAssistBins;
 //    QList<__StatsInfo_t> _statsInfo;
 };

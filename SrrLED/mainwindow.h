@@ -18,27 +18,24 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
     enum DeviceState {
-        OPENING,
+        CLOSE,
         OPEN,
-        CLOSING,
-        CLOSED
+        PAUSE
     };
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void keyPressEvent(QKeyEvent *event);
-    void serialPortConfig();
+    void tryFindSerialPort();
 
-    void dataPortOpened();
+    bool sensorStart();
 
 public slots:
     void onSpeedChanged();
     void showAboutMessage();
 
-    void onActionOpenConfig();
-    void onActionSensorStart();
-    void onActionSensorStop();
+    void onActionConnect();
+    void onActionDisconnect();
     void onActionSettings();
 
 private:
@@ -50,8 +47,8 @@ private:
     QSerialPort *_portData;
     DeviceState _deviceState;
 
-    QAction *actionStopSensor;
-    QAction *actionStartSensor;
+    QAction *actionConnect;
+    QAction *actionDisconnect;
     QAction *actionSettings;
 };
 

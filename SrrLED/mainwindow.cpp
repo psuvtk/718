@@ -16,8 +16,13 @@ MainWindow::MainWindow(QWidget *parent) :
     _commThread = new UartThread;
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
+    _deviceState = CLOSE;
 
-    serialPortConfig();
+    //        // 设置并调度新线程
+    _commThread->setHandle(_portData);
+    _commThread->start();
+
+    tryFindSerialPort();
     menuBar()->hide();
     auto w = ui->tabWidget->width();
     auto h = ui->tabWidget->height() + statusBar()->height()
@@ -25,8 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
     auto dw = QApplication::desktop()->width();
     auto dh = QApplication::desktop()->height();
     setGeometry((dw-w)/2, (dh-h)/2, w, h);
-    qDebug() << dw << " " <<dh;
-
+    qDebug() << dw << " " << dh;
     // 打开配置文件
 //    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
 //                                            tr("Open Config File"),
@@ -35,18 +39,18 @@ MainWindow::MainWindow(QWidget *parent) :
 //    connect(actionOpenConfig, &QAction::triggered, this, &MainWindow::onActionOpenConfig);
 //    ui->mainToolBar->addSeparator();
 
-    actionStartSensor = new QAction(QIcon(":/icons/connect.svg"),
+    actionConnect = new QAction(QIcon(":/icons/connect.svg"),
                                     tr("connect"),
                                     this);
-    ui->mainToolBar->addAction(actionStartSensor);
-    connect(actionStartSensor, &QAction::triggered, this, &MainWindow::onActionSensorStart);
+    ui->mainToolBar->addAction(actionConnect);
+    connect(actionConnect, &QAction::triggered, this, &MainWindow::onActionConnect);
 
-    actionStopSensor = new QAction(QIcon(":/icons/disconnect.svg"),
+    actionDisconnect = new QAction(QIcon(":/icons/disconnect.svg"),
                                    tr("disconnect"),
                                    this);
-    actionStopSensor->setEnabled(false);
-    ui->mainToolBar->addAction(actionStopSensor);
-    connect(actionStopSensor, &QAction::triggered, this, &MainWindow::onActionSensorStop);
+    actionDisconnect->setEnabled(false);
+    ui->mainToolBar->addAction(actionDisconnect);
+    connect(actionDisconnect, &QAction::triggered, this, &MainWindow::onActionDisconnect);
 
     ui->mainToolBar->addSeparator();
 
@@ -62,7 +66,11 @@ MainWindow::~MainWindow()
 {
     _commThread->terminate();
     _commThread->wait();
+    if (_portData->isOpen()) _portData->close();
 
+    delete _commThread;
+    delete _portUart;
+    delete _portData;
     delete ui;
     delete _settings;
 }
@@ -75,13 +83,10 @@ void MainWindow::showAboutMessage() {
    qDebug() << "MainWindow::showAboutMessage()";
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
-    QMainWindow::keyPressEvent(event);
-}
 
 
 
-void MainWindow::serialPortConfig() {
+void MainWindow::tryFindSerialPort() {
 #ifdef Q_OS_LINUX
     _settings->setPortNameUartPort("/dev/ttyACM0");
     _settings->setPortNameDataPort("/dev/ttyACM1");
@@ -116,91 +121,49 @@ void MainWindow::serialPortConfig() {
 #endif
 }
 
-void MainWindow::onActionOpenConfig() {
-    qDebug() << "TODO: impl open config";
-    QString fileName = QFileDialog::getOpenFileName(this,
-                                                    tr("Select Config File"),
-                                                    QDir::homePath(),
-                                                    "Config (*.cfg)");
-    _settings->setConfigFilePath(fileName);
-}
 
-void MainWindow::onActionSensorStart() {
-    if (_settings->getPortNameUartPort() == "") {
-        serialPortConfig();
-        if (_settings->getPortNameUartPort() == "") {
-            qDebug() << "Empty UartPort Name";
+
+void MainWindow::onActionConnect() {
+    if (_deviceState == CLOSE) {
+
+        if (sensorStart()) {
+            qDebug() << "Success to start sensor.";
+        } else {
+            qDebug() << "Failed to start sensor.";
             QMessageBox::critical(this,
-                                  tr("Open UART Failed"),
-                                  tr("Open UART Port Failed\nPlease Check Settings!"));
+                                  tr("Sensor start failed"),
+                                  tr("Failed to start sensor\nCheck your settings and retry!"));
             return;
         }
-    }
-    qDebug() << _settings->getPortNameUartPort();
-    _portUart->setPortName(_settings->getPortNameUartPort());
-    _portUart->setBaudRate(QSerialPort::Baud115200);
-    _portUart->setDataBits(QSerialPort::Data8);
-    _portUart->setParity(QSerialPort::NoParity);
-    _portUart->setStopBits(QSerialPort::OneStop);
-    _portUart->setFlowControl(QSerialPort::NoFlowControl);
 
-    QStringList cmds;
-    cmds.append("advFrameCfg\n");
-    cmds.append("sensorStart\n");
-
-    if (_portUart->open(QIODevice::ReadWrite)) {
-        for (QString cmd: cmds) {
-             QByteArray readBuf;
-            _portUart->write(cmd.toLatin1());
-
-            // 等待全部返回数据，10ms超时
-            while (_portUart->waitForReadyRead(10)) {
-                readBuf.append(_portUart->readAll());
-            }
-
-            qDebug() << "Retruned: " << readBuf;
-            if (QString(readBuf).contains("Done")) {
-                qDebug() << "Send Command => "
-                         << cmd;
-            } else {
-                qDebug() << "\nSend Command ["
-                         << cmd << "] Faild!";
+        // 打开数据串口
+        if (_settings->getPortNameDataPort() == "") {
+            qDebug() << "Empty DataPort Name";
+            tryFindSerialPort();
+            if (_settings->getPortNameDataPort() == "") {
                 QMessageBox::critical(this,
-                                      tr("Send Command Failed"),
-                                      tr("Not Recogized as a CLI Command"));
-                _portUart->close();
+                                      tr("Open DATA Failed"),
+                                      tr("Failed to open DATA port\nPlease check settings!"));
                 return;
             }
         }
-        _portUart->close();
-    } else {
-        qDebug() << "open Open UART Port Failed.";
-        QMessageBox::critical(this,
-                              tr("Open UART Failed"),
-                              tr("Failed to open UART port"));
-        return;
+
+        _portData->setPortName(_settings->getPortNameDataPort());
+        _portData->setBaudRate(921600);
+        _portData->setDataBits(QSerialPort::Data8);
+        _portData->setParity(QSerialPort::NoParity);
+        _portData->setStopBits(QSerialPort::OneStop);
+        _portData->setFlowControl(QSerialPort::NoFlowControl);
+
     }
 
-
-    // 打开数据串口
-    if (_settings->getPortNameDataPort() == "") {
-        qDebug() << "Empty DataPort Name";
-        QMessageBox::critical(this,
-                              tr("Open DATA Failed"),
-                              tr("Failed to open DATA port\nPlease check settings!"));
-        return;
-    }
-    _portData->setPortName(_settings->getPortNameDataPort());
-    _portData->setBaudRate(921600);
-    _portData->setDataBits(QSerialPort::Data8);
-    _portData->setParity(QSerialPort::NoParity);
-    _portData->setStopBits(QSerialPort::OneStop);
-    _portData->setFlowControl(QSerialPort::NoFlowControl);
     if (_portData->open(QIODevice::ReadOnly)) {
-        actionStartSensor->setEnabled(false);
-        actionStopSensor->setEnabled(true);
+        actionConnect->setEnabled(false);
+        actionDisconnect->setEnabled(true);
         actionSettings->setEnabled(false);
-        dataPortOpened();
+//        // 设置并调度新线程
+//        _commThread->setHandle(_portData);
+//        _commThread->start();
         return;
     } else {
         QMessageBox::critical(this,
@@ -210,54 +173,15 @@ void MainWindow::onActionSensorStart() {
     }
 }
 
-void MainWindow::onActionSensorStop() {
-    _portUart->setPortName(_settings->getPortNameUartPort());
-    _portUart->setBaudRate(QSerialPort::Baud115200);
-    _portUart->setDataBits(QSerialPort::Data8);
-    _portUart->setParity(QSerialPort::NoParity);
-    _portUart->setStopBits(QSerialPort::OneStop);
-    _portUart->setFlowControl(QSerialPort::NoFlowControl);
-
-    QStringList cmds;
-    cmds.append("sensorStop\n");
-    cmds.append("sensorStop\n");
-    if (_portUart->open(QIODevice::ReadWrite)) {
-        for (QString cmd: cmds) {
-            QByteArray readBuf;
-            _portUart->write(cmd.toLatin1());
-
-            // 等待全部返回数据，10ms超时
-            while (_portUart->waitForReadyRead(10)) {
-               readBuf.append(_portUart->readAll());
-            }
-
-            qDebug() << readBuf;
-            if (QString(readBuf).contains("Done")) {
-                qDebug() << "Send Command => "
-                         << cmd;
-            } else {
-                qDebug() << "\nSend Command ["
-                         << cmd << "] Faild!";
-                QMessageBox::critical(this,
-                                      tr("Close Failed"),
-                                      tr("Not Recogized as a CLI Command"));
-                _portUart->close();
-                return;
-            }
-        }
-        _portUart->close();
-    } else {
-        qDebug() << "Close Serial Port Failed.";
-        QMessageBox::critical(this,
-                              tr("Close Failed"),
-                              tr("Failed to open serial port"));
-        return;
+void MainWindow::onActionDisconnect() {
+    if (_portData->isOpen()) {
+        _portData->close();
+        _deviceState = PAUSE;
     }
 
-    actionStartSensor->setEnabled(true);
-    actionStopSensor->setEnabled(false);
+    actionConnect->setEnabled(true);
+    actionDisconnect->setEnabled(false);
     actionSettings->setEnabled(true);
-    _portData->close();
 }
 
 void MainWindow::onActionSettings() {
@@ -267,7 +191,55 @@ void MainWindow::onActionSettings() {
     }
 }
 
-void MainWindow::dataPortOpened() {
-    _commThread->setHandle(_portData);
-    _commThread->start();
+bool MainWindow::sensorStart() {
+    if (_settings->getPortNameUartPort() == "") {
+        tryFindSerialPort();
+        if (_settings->getPortNameUartPort() == "") {
+            qDebug() << "Empty UartPort Name";
+            return false;
+        }
+    }
+
+    _portUart->setPortName(_settings->getPortNameUartPort());
+    _portUart->setBaudRate(QSerialPort::Baud115200);
+    _portUart->setDataBits(QSerialPort::Data8);
+    _portUart->setParity(QSerialPort::NoParity);
+    _portUart->setStopBits(QSerialPort::OneStop);
+    _portUart->setFlowControl(QSerialPort::NoFlowControl);
+
+    if (!_portUart->open(QIODevice::ReadWrite))
+        return false;
+
+
+    // 针对上电后第一次配置出错
+    _portUart->write("advFrameCfg\n");
+
+    // 正式发送CLI命令
+    QStringList cmds;
+    QByteArray readBuf;
+    cmds.append("advFrameCfg\n");
+    cmds.append("sensorStart\n");
+    for (QString cmd: cmds) {
+        readBuf.clear();
+        _portUart->write(cmd.toLatin1());
+
+        // 等待全部返回数据，10ms超时
+        while (_portUart->waitForReadyRead(10)) {
+            readBuf.append(_portUart->readAll());
+        }
+
+        qDebug() << "Received: " << readBuf;
+        if (QString(readBuf).contains("Done")) {
+            qDebug() << "Send Command => "
+                     << cmd;
+        } else {
+            qDebug() << "\nSend Command ["
+                     << cmd << "] Faild!";
+
+            _portUart->close();
+            return false;
+        }
+    }
+    _portUart->close();
+    return true;
 }
