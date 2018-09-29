@@ -12,6 +12,15 @@ enum TlvType
     MMWDEMO_UART_MSG_STATS = 6,
 };
 
+struct DetObj_t
+{
+    qint16  speed;        /*!< @brief Doppler index */
+    quint16 peakVal;     /*!< @brief Peak value */
+    qint16  x;             /*!< @brief x - coordinate in meters. */
+    qint16  y;             /*!< @brief y - coordinate in meters.  */
+};
+
+
 struct __DetObj_t
 {
     qint16  speed;        /*!< @brief Doppler index */
@@ -46,6 +55,12 @@ struct __ParkingAssistBin_t
 struct __StatsInfo_t
 {
 
+};
+
+struct __DataObjDescr_t
+{
+    quint16 numObj;
+    quint16 oneQFormat;
 };
 
 struct SrrPacketHeader_t
@@ -95,8 +110,10 @@ public:
 //    getParkingAssistBins();
 //    getStatsInfo();
 private:
-    quint32 getTlvType(const char *pTlv) { return *(qint32*)(pTlv); }
-    quint32 getTlvLength(const char *pTlv) { return *(qint32*)(pTlv+4); }
+    quint32 getTlvType(const char *p) { return *(qint32*)(p); }
+    quint32 getTlvLength(const char *p) { return *(qint32*)(p+4); }
+    quint32 getDescrNumObj(const char *p) { return *(quint32*)(p); }
+    quint32 getDescrOneQFormat(const char *p) { return *(quint32*)(p+4); }
 
     void extractDetObj();
     void extractCluster();
