@@ -27,6 +27,7 @@ public:
     ~MainWindow();
 
     void tryFindSerialPort();
+    void displaySubframeParams();
 
     bool sensorStart();
 

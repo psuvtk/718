@@ -10,7 +10,7 @@ void UartThread::setHandle(QSerialPort *handle) {
 }
 
 void UartThread::run() {
-    const QByteArray SYNC = SrrPacket::getSync();
+    QByteArray SYNC = SrrPacket::getSync();
     QByteArray bufRecv;
     QByteArray bufFrame;
     qint64 skipLength = 0;
@@ -51,9 +51,7 @@ labelRecover:
 
             // 处理完整一帧
             SrrPacket packet(bufFrame.data());
-            qDebug() << "处理完整的一帧";
-            packet.query();
+            // 选取速度
         }
     }
-
 }

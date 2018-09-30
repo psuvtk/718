@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include "dialogpreference.h"
 #include <QDesktopWidget>
-
+#include <QTableWidgetItem>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -18,12 +18,14 @@ MainWindow::MainWindow(QWidget *parent) :
     _portData = new QSerialPort;
     _deviceState = CLOSE;
 
-    //        // 设置并调度新线程
     _commThread->setHandle(_portData);
     _commThread->start();
-
     tryFindSerialPort();
+    displaySubframeParams();
+
+    // GUI 设置
     menuBar()->hide();
+    setWindowTitle(tr("SrrLED"));
     auto w = ui->tabWidget->width();
     auto h = ui->tabWidget->height() + statusBar()->height()
              + ui->mainToolBar->height();
@@ -31,13 +33,14 @@ MainWindow::MainWindow(QWidget *parent) :
     auto dh = QApplication::desktop()->height();
     setGeometry((dw-w)/2, (dh-h)/2, w, h);
     qDebug() << dw << " " << dh;
+
     // 打开配置文件
-//    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
-//                                            tr("Open Config File"),
-//                                            this);
-//    ui->mainToolBar->addAction(actionOpenConfig);
-//    connect(actionOpenConfig, &QAction::triggered, this, &MainWindow::onActionOpenConfig);
-//    ui->mainToolBar->addSeparator();
+    //    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
+    //                                            tr("Open Config File"),
+    //                                            this);
+    //    ui->mainToolBar->addAction(actionOpenConfig);
+    //    connect(actionOpenConfig, &QAction::triggered, this, &MainWindow::onActionOpenConfig);
+    //    ui->mainToolBar->addSeparator();
 
     actionConnect = new QAction(QIcon(":/icons/connect.svg"),
                                     tr("connect"),
@@ -59,7 +62,6 @@ MainWindow::MainWindow(QWidget *parent) :
                                  this);
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
-
 }
 
 MainWindow::~MainWindow()
@@ -161,9 +163,6 @@ void MainWindow::onActionConnect() {
         actionConnect->setEnabled(false);
         actionDisconnect->setEnabled(true);
         actionSettings->setEnabled(false);
-//        // 设置并调度新线程
-//        _commThread->setHandle(_portData);
-//        _commThread->start();
         return;
     } else {
         QMessageBox::critical(this,
@@ -210,36 +209,69 @@ bool MainWindow::sensorStart() {
     if (!_portUart->open(QIODevice::ReadWrite))
         return false;
 
-
-    // 针对上电后第一次配置出错
-    _portUart->write("advFrameCfg\n");
-
     // 正式发送CLI命令
     QStringList cmds;
     QByteArray readBuf;
+    quint32 nErr = 0;
+
     cmds.append("advFrameCfg\n");
     cmds.append("sensorStart\n");
     for (QString cmd: cmds) {
+retry:
         readBuf.clear();
         _portUart->write(cmd.toLatin1());
-
         // 等待全部返回数据，10ms超时
         while (_portUart->waitForReadyRead(10)) {
+            QThread::msleep(20);
             readBuf.append(_portUart->readAll());
         }
 
+
+        qDebug() << "Send Command => " << cmd;
         qDebug() << "Received: " << readBuf;
+
         if (QString(readBuf).contains("Done")) {
-            qDebug() << "Send Command => "
-                     << cmd;
+            nErr = 0;
+            continue;
+        }
+
+        if (QString(readBuf).contains("Error")) {
+            qDebug() << "\nSend Command ["
+                     << cmd << "] Faild!";
+            _portUart->close();
+            return false;
+        }
+
+        if (nErr++ < 2 ) {
+            QThread::msleep(10);
+            readBuf.clear();
+            goto retry;
         } else {
             qDebug() << "\nSend Command ["
                      << cmd << "] Faild!";
-
             _portUart->close();
             return false;
         }
     }
+
     _portUart->close();
     return true;
+}
+
+void MainWindow::displaySubframeParams() {
+    qDebug() << "Not impl displaySubframeParams";
+    ui->twParamSubframe1->setColumnWidth(0, 190);
+    ui->twParamSubframe2->setColumnWidth(0, 190);
+    ui->twParamSubframe1->setItem(0, 0, new QTableWidgetItem("76"));
+    ui->twParamSubframe1->setItem(0, 1, new QTableWidgetItem("0.4096"));
+    ui->twParamSubframe1->setItem(0, 2, new QTableWidgetItem("0.3662"));
+    ui->twParamSubframe1->setItem(0, 3, new QTableWidgetItem("0.5227"));
+    ui->twParamSubframe1->setItem(0, 4, new QTableWidgetItem("1"));
+
+    ui->twParamSubframe2->setItem(0, 0, new QTableWidgetItem("77.0"));
+    ui->twParamSubframe2->setItem(0, 1, new QTableWidgetItem("3.4561"));
+    ui->twParamSubframe2->setItem(0, 2, new QTableWidgetItem("0.434"));
+    ui->twParamSubframe2->setItem(0, 3, new QTableWidgetItem("0.3229"));
+    ui->twParamSubframe2->setItem(0, 4, new QTableWidgetItem("2"));
+
 }
