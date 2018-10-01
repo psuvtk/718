@@ -7,44 +7,44 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
 
     const char *tl = pSrrPacket + HEAD_STRUCT_SIZE_BYTES;
     query();
-    for (quint32 i = 0; i < getNumTLVs(); i++) {
+    for (uint32_t i = 0; i < getNumTLVs(); i++) {
 
-        quint32 type = getTlvType(tl);
-        quint32 len = getTlvLength(tl);
+        uint32_t type = getTlvType(tl);
+        uint32_t len = getTlvLength(tl);
         tl += TL_STRUCT_SIZE_BYTES;
-        quint16 numObjs = getDescrNumObj(tl);
-        quint16 xyzQFormat = getDescrQFormat(tl);
+        uint16_t numObjs = getDescrNumObj(tl);
+        uint16_t xyzQFormat = getDescrQFormat(tl);
         tl += DESCR_STRUCT_SIZE_BYTES;
 
         switch (type) {
         case __TLV_Type::MMWDEMO_UART_MSG_DETECTED_POINTS:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_DETECTED_POINTS";
-            for (quint16 j = 0; j < numObjs; j++) {
+            for (uint16_t j = 0; j < numObjs; j++) {
                 extractDetObj(tl, xyzQFormat);
                 tl += OBJ_STRUCT_SIZE_BYTES;
             }
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_CLUSTERS:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_CLUSTERS";
-            for (quint16 j = 0; j < numObjs; j++) {
+            for (uint16_t j = 0; j < numObjs; j++) {
                 tl += CLUSTER_STRUCT_SIZE_BYTES;
             }
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_TRACKED_OBJ:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_TRACKED_OBJ";
-            for (quint16 j = 0; j < numObjs; j++) {
+            for (uint16_t j = 0; j < numObjs; j++) {
                 tl += TRACKER_STRUCT_SIZE_BYTES;
             }
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_PARKING_ASSIST:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_PARKING_ASSIST";
-            for (quint16 j = 0; j < numObjs; j++) {
+            for (uint16_t j = 0; j < numObjs; j++) {
                 tl += PARKING_ASSIST_BIN_SIZE_BYTES;
             }
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_STATS:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_STATS";
-            for (quint16 j = 0; j < numObjs; j++) {
+            for (uint16_t j = 0; j < numObjs; j++) {
                 tl += STATS_SIZE_BYTES;
             }
             break;
@@ -59,10 +59,10 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
 void SrrPacket::query() {
     qDebug() << "\n\nPacket Header-------------";
     qDebug("Sync: 0x%04x 0x%04x 0x%04x 0x%04x",
-           *(quint16*)_pSrrPacket,
-           *(quint16*)(_pSrrPacket+2),
-           *(quint16*)(_pSrrPacket+4),
-           *(quint16*)(_pSrrPacket+6));
+           *(uint16_t*)_pSrrPacket,
+           *(uint16_t*)(_pSrrPacket+2),
+           *(uint16_t*)(_pSrrPacket+4),
+           *(uint16_t*)(_pSrrPacket+6));
 
     qDebug("Version: 0x%08X", getVersion()) ;
     qDebug() << "TotalPacketLen: " << getTotalPacketLen();
@@ -78,7 +78,7 @@ void SrrPacket::query() {
 
 }
 
-void SrrPacket::extractDetObj(const char *ptr, quint16 oneQFromat) {
+void SrrPacket::extractDetObj(const char *ptr, uint16_t oneQFromat) {
     double invQFormat = 1.0 / (1<<oneQFromat);
     qDebug() << "invQFromat: "<< invQFormat;
     DetObj_t detObj;

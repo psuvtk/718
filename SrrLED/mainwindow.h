@@ -4,11 +4,16 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QKeyEvent>
-#include "uartthread.h"
-#include "settings.h"
 #include <QDebug>
 #include <QSerialPortInfo>
 #include <QFileDialog>
+#include <QDesktopWidget>
+#include <QTableWidgetItem>
+
+#include "srrpacket.h"
+#include "dialogpreference.h"
+#include "uartthread.h"
+#include "settings.h"
 
 namespace Ui {
 class MainWindow;
@@ -31,8 +36,13 @@ public:
 
     bool sensorStart();
 
+signals:
+    void dispDone();
+
 public slots:
-    void onSpeedChanged();
+    void onSpeedChanged(double);
+    void onFrameChanged(SrrPacket *);
+
     void showAboutMessage();
 
     void onActionConnect();

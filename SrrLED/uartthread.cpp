@@ -1,7 +1,6 @@
 #include "uartthread.h"
-#include "srrpacket.h"
-#include <QDebug>
-#include <QByteArray>
+
+#include <random>
 
 UartThread::UartThread(){}
 
@@ -10,7 +9,7 @@ void UartThread::setHandle(QSerialPort *handle) {
 }
 
 void UartThread::run() {
-    QByteArray SYNC = SrrPacket::getSync();
+    QByteArray SYNC = QByteArray::fromHex("0201040306050807");
     QByteArray bufRecv;
     QByteArray bufFrame;
     qint64 skipLength = 0;
@@ -51,7 +50,30 @@ labelRecover:
 
             // 处理完整一帧
             SrrPacket packet(bufFrame.data());
+            emit frameChanged(&packet);
+            waitForDispDone();
             // 选取速度
+            double speed = selectSpeed();
+            emit speedChanged(speed);
+
         }
     }
+}
+
+double UartThread::selectSpeed() {
+    qDebug() << "TODO: impl select speed.";
+    std::mt19937 rng;
+    rng.seed(std::random_device()());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 6);
+    return (double)dist6(rng);
+}
+
+void UartThread::waitForDispDone() {
+    _isDispDone = false;
+    while (!_isDispDone)
+        ;
+}
+
+void UartThread::onDispDone() {
+    _isDispDone = true;
 }

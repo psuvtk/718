@@ -1,8 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "dialogpreference.h"
-#include <QDesktopWidget>
-#include <QTableWidgetItem>
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -23,6 +21,9 @@ MainWindow::MainWindow(QWidget *parent) :
     tryFindSerialPort();
     displaySubframeParams();
 
+    connect(_commThread, &UartThread::speedChanged, this, &MainWindow::onSpeedChanged);
+    connect(_commThread, &UartThread::frameChanged, this, &MainWindow::onFrameChanged);
+    connect(this, &MainWindow::dispDone, _commThread, &UartThread::onDispDone);
     // GUI 设置
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
@@ -33,6 +34,11 @@ MainWindow::MainWindow(QWidget *parent) :
     auto dh = QApplication::desktop()->height();
     setGeometry((dw-w)/2, (dh-h)/2, w, h);
     qDebug() << dw << " " << dh;
+
+    ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twParamSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twParamSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     // 打开配置文件
     //    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
@@ -77,9 +83,6 @@ MainWindow::~MainWindow()
     delete _settings;
 }
 
-void MainWindow::onSpeedChanged() {
-
-}
 
 void MainWindow::showAboutMessage() {
    qDebug() << "MainWindow::showAboutMessage()";
@@ -274,4 +277,50 @@ void MainWindow::displaySubframeParams() {
     ui->twParamSubframe2->setItem(0, 3, new QTableWidgetItem("0.3229"));
     ui->twParamSubframe2->setItem(0, 4, new QTableWidgetItem("2"));
 
+}
+
+void MainWindow::onSpeedChanged(double speed) {
+    ui->lcdNumber->display(speed);
+}
+
+void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
+    QTableWidget *tw;
+    if (pSrrPacket->getSubframeNumber() == 0) {
+        tw = ui->twPacketSubframe1;
+    } else {
+        tw = ui->twPacketSubframe2;
+    }
+
+    QString version = QString("0x%1").arg(pSrrPacket->getVersion(),8, 16,QChar('0'));
+    QString platform = QString("0x%1").arg(pSrrPacket->getPlatform(), 8, 16, QChar('0'));
+    QString totalPacketLen = QString::number(pSrrPacket->getTotalPacketLen());
+    QString frameNumber = QString::number(pSrrPacket->getFrameNumber());
+    QString timeCpuCycles = QString::number(pSrrPacket->getTimeCpuCycles());
+    QString numDetObjs = QString::number(pSrrPacket->getNumDetectedObj());
+    QString numTLVs = QString::number(pSrrPacket->getNumTLVs());
+    QString subframeNumber = QString::number(pSrrPacket->getSubframeNumber());
+    QString detObjs = QString::number(pSrrPacket->getDetObjs().length());
+    QString clusters = QString::number(pSrrPacket->getClusters().length());
+    QString trackers = QString::number(pSrrPacket->getTackers().length());
+    QString parkingAssitBins = QString::number(pSrrPacket->getParkingAssistBins().length());
+    QString statsInfo = QString::number(pSrrPacket->getStatsInfo().length());
+
+
+    tw->setItem(0, 0, new QTableWidgetItem("0x0102 0x0304 0x0506 0x0708"));
+    tw->setItem(0, 1, new QTableWidgetItem(version));
+    tw->setItem(0, 2, new QTableWidgetItem(platform));
+    tw->setItem(0, 3, new QTableWidgetItem(totalPacketLen));
+    tw->setItem(0, 4, new QTableWidgetItem(frameNumber));
+    tw->setItem(0, 5, new QTableWidgetItem(timeCpuCycles));
+    tw->setItem(0, 6, new QTableWidgetItem(numDetObjs));
+    tw->setItem(0, 7, new QTableWidgetItem(numTLVs));
+    tw->setItem(0, 8, new QTableWidgetItem(subframeNumber));
+    tw->setItem(0, 9, new QTableWidgetItem(""));
+    tw->setItem(0, 10, new QTableWidgetItem(detObjs));
+    tw->setItem(0, 11, new QTableWidgetItem(clusters));
+    tw->setItem(0, 12, new QTableWidgetItem(trackers));
+    tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
+    tw->setItem(0, 13, new QTableWidgetItem(statsInfo));
+
+    emit dispDone();
 }

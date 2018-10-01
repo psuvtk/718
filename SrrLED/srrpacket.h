@@ -4,8 +4,6 @@
 #include <QtCore>
 #include <cmath>
 
-#define SYNC (QByteArray::fromHex("0201040306050807"))
-
 struct DetObj_t
 {
     double  speed;        /*!< @brief Doppler index */
@@ -17,20 +15,20 @@ struct DetObj_t
 
 struct Tracker_t
 {
-    qint16 x;                  /**< the tracking output -> x co-ordinate */
-    qint16 y;                  /**< the tracking output -> y co-ordinate */
-    qint16 xd;                 /**< velocity in the x direction */
-    qint16 yd;                 /**< velocity in the y direction */
-    qint16 xSize;              /**< cluster size (x direction). */
-    qint16 ySize;              /**< cluster size (y direction). */
+    int16_t x;                  /**< the tracking output -> x co-ordinate */
+    int16_t y;                  /**< the tracking output -> y co-ordinate */
+    int16_t xd;                 /**< velocity in the x direction */
+    int16_t yd;                 /**< velocity in the y direction */
+    int16_t xSize;              /**< cluster size (x direction). */
+    int16_t ySize;              /**< cluster size (y direction). */
 };
 
 struct Cluster_t
 {
-    qint16 xCenter;               /**< the clustering center on x direction */
-    qint16 yCenter;               /**< the clustering center on y direction */
-    qint16 xSize;                 /**< the clustering size on x direction */
-    qint16 ySize;                 /**< the clustering size on y direction */
+    int16_t xCenter;               /**< the clustering center on x direction */
+    int16_t yCenter;               /**< the clustering center on y direction */
+    int16_t xSize;                 /**< the clustering size on x direction */
+    int16_t ySize;                 /**< the clustering size on y direction */
 };
 
 struct ParkingAssistBin_t
@@ -44,15 +42,15 @@ struct StatsInfo_t
 };
 
 class SrrPacket {
-    const quint32 HEAD_STRUCT_SIZE_BYTES = 40;
-    const quint32 TL_STRUCT_SIZE_BYTES = 8;
-    const quint32 DESCR_STRUCT_SIZE_BYTES = 4;
+    const uint32_t HEAD_STRUCT_SIZE_BYTES = 40;
+    const uint32_t TL_STRUCT_SIZE_BYTES = 8;
+    const uint32_t DESCR_STRUCT_SIZE_BYTES = 4;
 
-    const quint32 OBJ_STRUCT_SIZE_BYTES = 8;
-    const quint32 CLUSTER_STRUCT_SIZE_BYTES = 8;
-    const quint32 TRACKER_STRUCT_SIZE_BYTES = 12;
-    const quint32 PARKING_ASSIST_BIN_SIZE_BYTES = 2;
-    const quint32 STATS_SIZE_BYTES = 16;
+    const uint32_t OBJ_STRUCT_SIZE_BYTES = 8;
+    const uint32_t CLUSTER_STRUCT_SIZE_BYTES = 8;
+    const uint32_t TRACKER_STRUCT_SIZE_BYTES = 12;
+    const uint32_t PARKING_ASSIST_BIN_SIZE_BYTES = 2;
+    const uint32_t STATS_SIZE_BYTES = 16;
 
     enum __TLV_Type
     {
@@ -65,47 +63,47 @@ class SrrPacket {
 
     struct __header_t
     {
-        quint16 magicWord[4];
-        quint32 version;
-        quint32 totalPacketLen;
-        quint32 platform;
-        quint32 frameNumber;
-        quint32 timeCpuCycles;
-        quint32 numDetectedObj;
-        quint32 numTLVs;
-        quint32 subFrameNumber;
+        uint16_t magicWord[4];
+        uint32_t version;
+        uint32_t totalPacketLen;
+        uint32_t platform;
+        uint32_t frameNumber;
+        uint32_t timeCpuCycles;
+        uint32_t numDetectedObj;
+        uint32_t numTLVs;
+        uint32_t subFrameNumber;
     };
 
     struct __tl_t
     {
-       quint32 type;
-       quint32 length;
+       uint32_t type;
+       uint32_t length;
     };
 
     struct __detObj_t
     {
-        qint16  speed;        /*!< @brief Doppler index */
-        quint16 peakVal;     /*!< @brief Peak value */
-        qint16  x;             /*!< @brief x - coordinate in meters. */
-        qint16  y;             /*!< @brief y - coordinate in meters.  */
+        int16_t  speed;        /*!< @brief Doppler index */
+        uint16_t peakVal;     /*!< @brief Peak value */
+        int16_t  x;             /*!< @brief x - coordinate in meters. */
+        int16_t  y;             /*!< @brief y - coordinate in meters.  */
     };
 
     struct __tracker_t
     {
-        qint16 x;                  /**< the tracking output -> x co-ordinate */
-        qint16 y;                  /**< the tracking output -> y co-ordinate */
-        qint16 xd;                 /**< velocity in the x direction */
-        qint16 yd;                 /**< velocity in the y direction */
-        qint16 xSize;              /**< cluster size (x direction). */
-        qint16 ySize;              /**< cluster size (y direction). */
+        int16_t x;                  /**< the tracking output -> x co-ordinate */
+        int16_t y;                  /**< the tracking output -> y co-ordinate */
+        int16_t xd;                 /**< velocity in the x direction */
+        int16_t yd;                 /**< velocity in the y direction */
+        int16_t xSize;              /**< cluster size (x direction). */
+        int16_t ySize;              /**< cluster size (y direction). */
     };
 
     struct __cluster_t
     {
-        qint16 xCenter;               /**< the clustering center on x direction */
-        qint16 yCenter;               /**< the clustering center on y direction */
-        qint16 xSize;                 /**< the clustering size on x direction */
-        qint16 ySize;                 /**< the clustering size on y direction */
+        int16_t xCenter;               /**< the clustering center on x direction */
+        int16_t yCenter;               /**< the clustering center on y direction */
+        int16_t xSize;                 /**< the clustering size on x direction */
+        int16_t ySize;                 /**< the clustering size on y direction */
     };
 
     struct __parkingAssistBin_t
@@ -121,9 +119,9 @@ class SrrPacket {
     struct __dataObjDescr_t
     {
         /* Number of detected object*/
-        quint16 numObj;
+        uint16_t numObj;
         /* Q format of detected objects x/y/z coordinates */
-        quint16 xyzQFormat;
+        uint16_t xyzQFormat;
     };
 
 public:
@@ -134,28 +132,28 @@ public:
 
     static QByteArray getSync() { return QByteArray::fromHex("0201040306050807");}
 
-    quint32 getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
-    quint32 getTotalPacketLen() { return ((struct __header_t *)_pSrrPacket)->totalPacketLen; }
-    quint32 getPlatform() { return ((struct __header_t *)_pSrrPacket)->platform; }
-    quint32 getFrameNumber() { return ((struct __header_t *)_pSrrPacket)->frameNumber; }
-    quint32 getTimeCpuCycles() { return ((struct __header_t *)_pSrrPacket)->timeCpuCycles; }
-    quint32 getNumDetectedObj() { return ((struct __header_t *)_pSrrPacket)->numDetectedObj; }
-    quint32 getNumTLVs() { return ((struct __header_t *)_pSrrPacket)->numTLVs; }
-    quint32 getSubframeNumber() { return ((struct __header_t *)_pSrrPacket)->subFrameNumber; }
+    uint32_t getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
+    uint32_t getTotalPacketLen() { return ((struct __header_t *)_pSrrPacket)->totalPacketLen; }
+    uint32_t getPlatform() { return ((struct __header_t *)_pSrrPacket)->platform; }
+    uint32_t getFrameNumber() { return ((struct __header_t *)_pSrrPacket)->frameNumber; }
+    uint32_t getTimeCpuCycles() { return ((struct __header_t *)_pSrrPacket)->timeCpuCycles; }
+    uint32_t getNumDetectedObj() { return ((struct __header_t *)_pSrrPacket)->numDetectedObj; }
+    uint32_t getNumTLVs() { return ((struct __header_t *)_pSrrPacket)->numTLVs; }
+    uint32_t getSubframeNumber() { return ((struct __header_t *)_pSrrPacket)->subFrameNumber; }
 
-    QList<DetObj_t> getDetObjs() { return _detObjs; }
-    QList<Tracker_t> getTackers() { return _trackers; }
-    QList<Cluster_t> getClusters() { return _clusters; }
-    QList<ParkingAssistBin_t> getParkingAssistBins() { return _parkingAssistBins; }
-    QList<StatsInfo_t> getStatsInfo() { return _statsInfo; }
+    QList<DetObj_t>& getDetObjs() { return _detObjs; }
+    QList<Tracker_t>& getTackers() { return _trackers; }
+    QList<Cluster_t>& getClusters() { return _clusters; }
+    QList<ParkingAssistBin_t>& getParkingAssistBins() { return _parkingAssistBins; }
+    QList<StatsInfo_t>& getStatsInfo() { return _statsInfo; }
 
 private:
-    quint32 getTlvType(const char *p) { return ((struct __tl_t *)p)->type; }
-    quint32 getTlvLength(const char *p) { return ((struct __tl_t *)p)->length; }
-    quint32 getDescrNumObj(const char *p) { return ((struct __dataObjDescr_t *)p)->numObj; }
-    quint32 getDescrQFormat(const char *p) { return ((struct __dataObjDescr_t *)p)->xyzQFormat; }
+    uint32_t getTlvType(const char *p) { return ((struct __tl_t *)p)->type; }
+    uint32_t getTlvLength(const char *p) { return ((struct __tl_t *)p)->length; }
+    uint32_t getDescrNumObj(const char *p) { return ((struct __dataObjDescr_t *)p)->numObj; }
+    uint32_t getDescrQFormat(const char *p) { return ((struct __dataObjDescr_t *)p)->xyzQFormat; }
 
-    void extractDetObj(const char *ptr, quint16 oneQFromat);
+    void extractDetObj(const char *ptr, uint16_t oneQFromat);
     void extractCluster();
     void extractTracker();
     void extractStatsInfo();
@@ -170,7 +168,7 @@ private:
     QList<ParkingAssistBin_t> _parkingAssistBins;
     QList<StatsInfo_t> _statsInfo;
 
-    quint32 _num;
+    uint32_t _num;
 };
 
 #endif // SRRPACKET_H
