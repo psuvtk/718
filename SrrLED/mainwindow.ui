@@ -6,324 +6,319 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>908</width>
-    <height>694</height>
+    <width>1920</width>
+    <height>1080</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QTabWidget" name="tabWidget">
+   <widget class="QLCDNumber" name="lcdNumber">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>911</width>
-      <height>621</height>
+      <x>1180</x>
+      <y>850</y>
+      <width>291</width>
+      <height>151</height>
      </rect>
     </property>
-    <property name="currentIndex">
-     <number>1</number>
+   </widget>
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>1010</x>
+      <y>590</y>
+      <width>781</width>
+      <height>221</height>
+     </rect>
     </property>
-    <widget class="QWidget" name="tabFakeLED">
-     <attribute name="title">
-      <string>FakeLED</string>
-     </attribute>
-     <widget class="QLCDNumber" name="lcdNumber">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>751</width>
-        <height>381</height>
-       </rect>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tabLog">
-     <attribute name="title">
-      <string>帧</string>
-     </attribute>
-     <widget class="QWidget" name="horizontalLayoutWidget_2">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>901</width>
-        <height>591</height>
-       </rect>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QTableWidget" name="twPacketSubframe1">
-         <row>
-          <property name="text">
-           <string>Sync</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Version</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Platform</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Total  Packet Length</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Frame Number</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Time CPU Cycles</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>NumDetectedObj</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>NumTLVs</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Subframe Number</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>新建行</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>DetObjs</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Clusters</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Tracker</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>ParkingAssitBins</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>StatsInfo</string>
-          </property>
-         </row>
-         <column>
-          <property name="text">
-           <string>Subframe 1</string>
-          </property>
-         </column>
-        </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QTableWidget" name="twParamSubframe1">
+       <row>
+        <property name="text">
+         <string>Start Frequency (Ghz)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Bandwidth (GHz)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Range resolution (m)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Velocity resolution (m/s)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Number of Tx (MIMO)</string>
+        </property>
+       </row>
+       <column>
+        <property name="text">
+         <string>Subframe 1</string>
+        </property>
+        <property name="foreground">
+         <brush brushstyle="SolidPattern">
+          <color alpha="255">
+           <red>0</red>
+           <green>0</green>
+           <blue>0</blue>
+          </color>
+         </brush>
+        </property>
+       </column>
+       <item row="0" column="0">
+        <property name="text">
+         <string/>
+        </property>
        </item>
-       <item>
-        <widget class="QTableWidget" name="twPacketSubframe2">
-         <row>
-          <property name="text">
-           <string>Sync</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Version</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Platform</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Total  Packet Length</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Frame Number</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Time CPU Cycles</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>NumDetectedObj</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>NumTLVs</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Subframe Number</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>新建行</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>DetObjs</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Clusters</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Tracker</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>ParkingAssitBins</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>StatsInfo</string>
-          </property>
-         </row>
-         <column>
-          <property name="text">
-           <string>Subframe 2</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab">
-     <attribute name="title">
-      <string>Chirp参数</string>
-     </attribute>
-     <widget class="QWidget" name="horizontalLayoutWidget">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>891</width>
-        <height>551</height>
-       </rect>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QTableWidget" name="twParamSubframe1">
-         <row>
-          <property name="text">
-           <string>Start Frequency (Ghz)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Bandwidth (GHz)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Range resolution (m)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Velocity resolution (m/s)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Number of Tx (MIMO)</string>
-          </property>
-         </row>
-         <column>
-          <property name="text">
-           <string>Subframe 1</string>
-          </property>
-          <property name="foreground">
-           <brush brushstyle="SolidPattern">
-            <color alpha="255">
-             <red>0</red>
-             <green>0</green>
-             <blue>0</blue>
-            </color>
-           </brush>
-          </property>
-         </column>
-         <item row="0" column="0">
-          <property name="text">
-           <string/>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTableWidget" name="twParamSubframe2">
-         <row>
-          <property name="text">
-           <string>Start Frequency (Ghz)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Bandwidth (GHz)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Range resolution (m)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Velocity resolution (m/s)</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Number of Tx (MIMO)</string>
-          </property>
-         </row>
-         <column>
-          <property name="text">
-           <string>Subframe 2</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableWidget" name="twParamSubframe2">
+       <row>
+        <property name="text">
+         <string>Start Frequency (Ghz)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Bandwidth (GHz)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Range resolution (m)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Velocity resolution (m/s)</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Number of Tx (MIMO)</string>
+        </property>
+       </row>
+       <column>
+        <property name="text">
+         <string>Subframe 2</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="horizontalLayoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>1010</x>
+      <y>0</y>
+      <width>781</width>
+      <height>591</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QTableWidget" name="twPacketSubframe1">
+       <row>
+        <property name="text">
+         <string>Sync</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Version</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Platform</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Total  Packet Length</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Frame Number</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Time CPU Cycles</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>NumDetectedObj</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>NumTLVs</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Subframe Number</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>新建行</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>DetObjs</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Clusters</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Tracker</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>ParkingAssitBins</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>StatsInfo</string>
+        </property>
+       </row>
+       <column>
+        <property name="text">
+         <string>Subframe 1</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTableWidget" name="twPacketSubframe2">
+       <row>
+        <property name="text">
+         <string>Sync</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Version</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Platform</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Total  Packet Length</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Frame Number</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Time CPU Cycles</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>NumDetectedObj</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>NumTLVs</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Subframe Number</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>新建行</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>DetObjs</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Clusters</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>Tracker</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>ParkingAssitBins</string>
+        </property>
+       </row>
+       <row>
+        <property name="text">
+         <string>StatsInfo</string>
+        </property>
+       </row>
+       <column>
+        <property name="text">
+         <string>Subframe 2</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>960</width>
+      <height>960</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>GroupBox</string>
+    </property>
+    <widget class="QCustomPlot" name="customPlot" native="true">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>941</width>
+       <height>931</height>
+      </rect>
+     </property>
     </widget>
    </widget>
   </widget>
@@ -332,7 +327,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>908</width>
+     <width>1920</width>
      <height>26</height>
     </rect>
    </property>
@@ -363,6 +358,14 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QCustomPlot</class>
+   <extends>QWidget</extends>
+   <header>qcustomplot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

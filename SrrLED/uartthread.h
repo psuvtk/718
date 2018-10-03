@@ -19,13 +19,11 @@ public:
     void setHandle(QSerialPort *_device);
 
     void waitForDispDone();
-    double selectSpeed();
 
 public slots:
     void onDispDone();
 
 signals:
-    void speedChanged(double);
     void frameChanged(SrrPacket *);
 
 private:

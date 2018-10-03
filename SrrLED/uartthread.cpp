@@ -1,7 +1,5 @@
 #include "uartthread.h"
 
-#include <random>
-
 UartThread::UartThread(){}
 
 void UartThread::setHandle(QSerialPort *handle) {
@@ -52,20 +50,8 @@ labelRecover:
             SrrPacket packet(bufFrame.data());
             emit frameChanged(&packet);
             waitForDispDone();
-            // 选取速度
-            double speed = selectSpeed();
-            emit speedChanged(speed);
-
         }
     }
-}
-
-double UartThread::selectSpeed() {
-    qDebug() << "TODO: impl select speed.";
-    std::mt19937 rng;
-    rng.seed(std::random_device()());
-    std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 6);
-    return (double)dist6(rng);
 }
 
 void UartThread::waitForDispDone() {

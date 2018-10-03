@@ -14,6 +14,8 @@
 #include "dialogpreference.h"
 #include "uartthread.h"
 #include "settings.h"
+#include "qcustomplot.h"
+
 
 namespace Ui {
 class MainWindow;
@@ -40,7 +42,6 @@ signals:
     void dispDone();
 
 public slots:
-    void onSpeedChanged(double);
     void onFrameChanged(SrrPacket *);
 
     void showAboutMessage();
@@ -53,6 +54,7 @@ private:
     Ui::MainWindow *ui;
     Settings *_settings;
     UartThread *_commThread;
+    QCustomPlot *_plotHandle;
 
     QSerialPort *_portUart;
     QSerialPort *_portData;

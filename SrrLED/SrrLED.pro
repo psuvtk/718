@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui serialport
+QT       += core gui serialport printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -29,14 +29,16 @@ SOURCES += \
     uartthread.cpp \
     settings.cpp \
     dialogpreference.cpp \
-    srrpacket.cpp
+    srrpacket.cpp \
+    qcustomplot.cpp
 
 HEADERS += \
         mainwindow.h \
     uartthread.h \
     settings.h \
     dialogpreference.h \
-    srrpacket.h
+    srrpacket.h \
+    qcustomplot.h
 
 FORMS += \
         mainwindow.ui \

@@ -1,35 +1,40 @@
 #ifndef SRRPACKET_H
 #define SRRPACKET_H
 
-#include <QtCore>
+#include <vector>
 #include <cmath>
+#include <cinttypes>
+
+using std::vector;
 
 struct DetObj_t
 {
-    double  speed;        /*!< @brief Doppler index */
+    double  doppler;        /*!< @brief Doppler index */
     double peakVal;     /*!< @brief Peak value */
     double  x;             /*!< @brief x - coordinate in meters. */
     double  y;             /*!< @brief y - coordinate in meters.  */
     double range;
 };
 
-struct Tracker_t
-{
-    int16_t x;                  /**< the tracking output -> x co-ordinate */
-    int16_t y;                  /**< the tracking output -> y co-ordinate */
-    int16_t xd;                 /**< velocity in the x direction */
-    int16_t yd;                 /**< velocity in the y direction */
-    int16_t xSize;              /**< cluster size (x direction). */
-    int16_t ySize;              /**< cluster size (y direction). */
-};
-
 struct Cluster_t
 {
-    int16_t xCenter;               /**< the clustering center on x direction */
-    int16_t yCenter;               /**< the clustering center on y direction */
-    int16_t xSize;                 /**< the clustering size on x direction */
-    int16_t ySize;                 /**< the clustering size on y direction */
+    double x_loc;               /**< the clustering center on x direction */
+    double y_loc;               /**< the clustering center on y direction */
 };
+
+struct Tracker_t
+{
+    double x;                  /**< the tracking output -> x co-ordinate */
+    double y;                  /**< the tracking output -> y co-ordinate */
+    double vx;                 /**< velocity in the x direction */
+    double vy;                 /**< velocity in the y direction */
+    double cluster_x_loc;
+    double cluster_y_loc;
+    double range;
+    double doppler;
+};
+
+
 
 struct ParkingAssistBin_t
 {
@@ -38,7 +43,12 @@ struct ParkingAssistBin_t
 
 struct StatsInfo_t
 {
-
+    uint32_t interFrameProcessingTime;
+    uint32_t transmitOutputTime;
+    uint32_t interFrameProcessingMargin;
+    uint32_t interChirpProcessingMargin;
+    uint32_t activeFrameCpuLoad;
+    uint32_t interFrameCpuLoad;
 };
 
 class SrrPacket {
@@ -88,6 +98,14 @@ class SrrPacket {
         int16_t  y;             /*!< @brief y - coordinate in meters.  */
     };
 
+    struct __cluster_t
+    {
+        int16_t x;               /**< the clustering center on x direction */
+        int16_t y;               /**< the clustering center on y direction */
+        int16_t x_size;                 /**< the clustering size on x direction */
+        int16_t y_size;                 /**< the clustering size on y direction */
+    };
+
     struct __tracker_t
     {
         int16_t x;                  /**< the tracking output -> x co-ordinate */
@@ -98,22 +116,21 @@ class SrrPacket {
         int16_t ySize;              /**< cluster size (y direction). */
     };
 
-    struct __cluster_t
-    {
-        int16_t xCenter;               /**< the clustering center on x direction */
-        int16_t yCenter;               /**< the clustering center on y direction */
-        int16_t xSize;                 /**< the clustering size on x direction */
-        int16_t ySize;                 /**< the clustering size on y direction */
-    };
+
 
     struct __parkingAssistBin_t
     {
-
+        uint16_t range;
     };
 
     struct __statsInfo_t
     {
-
+        uint32_t interFrameProcessingTime;
+        uint32_t transmitOutputTime;
+        uint32_t interFrameProcessingMargin;
+        uint32_t interChirpProcessingMargin;
+        uint32_t activeFrameCpuLoad;
+        uint32_t interFrameCpuLoad;
     };
 
     struct __dataObjDescr_t
@@ -130,8 +147,6 @@ public:
 
     void query();
 
-    static QByteArray getSync() { return QByteArray::fromHex("0201040306050807");}
-
     uint32_t getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
     uint32_t getTotalPacketLen() { return ((struct __header_t *)_pSrrPacket)->totalPacketLen; }
     uint32_t getPlatform() { return ((struct __header_t *)_pSrrPacket)->platform; }
@@ -141,34 +156,32 @@ public:
     uint32_t getNumTLVs() { return ((struct __header_t *)_pSrrPacket)->numTLVs; }
     uint32_t getSubframeNumber() { return ((struct __header_t *)_pSrrPacket)->subFrameNumber; }
 
-    QList<DetObj_t>& getDetObjs() { return _detObjs; }
-    QList<Tracker_t>& getTackers() { return _trackers; }
-    QList<Cluster_t>& getClusters() { return _clusters; }
-    QList<ParkingAssistBin_t>& getParkingAssistBins() { return _parkingAssistBins; }
-    QList<StatsInfo_t>& getStatsInfo() { return _statsInfo; }
+    vector<DetObj_t>& getDetObjs() { return _detObjs; }
+    vector<Tracker_t>& getTackers() { return _trackers; }
+    vector<Cluster_t>& getClusters() { return _clusters; }
+    vector<ParkingAssistBin_t>& getParkingAssistBins() { return _parkingAssistBins; }
+    StatsInfo_t getStatsInfo() { return _statsInfo; }
 
 private:
-    uint32_t getTlvType(const char *p) { return ((struct __tl_t *)p)->type; }
-    uint32_t getTlvLength(const char *p) { return ((struct __tl_t *)p)->length; }
-    uint32_t getDescrNumObj(const char *p) { return ((struct __dataObjDescr_t *)p)->numObj; }
-    uint32_t getDescrQFormat(const char *p) { return ((struct __dataObjDescr_t *)p)->xyzQFormat; }
+    uint32_t getTlvType(const char *p) { return ((const struct __tl_t *)p)->type; }
+    uint32_t getTlvLength(const char *p) { return ((const struct __tl_t *)p)->length; }
+    uint32_t getDescrNumObj(const char *p) { return ((const struct __dataObjDescr_t *)p)->numObj; }
+    uint32_t getDescrQFormat(const char *p) { return ((const struct __dataObjDescr_t *)p)->xyzQFormat; }
 
     void extractDetObj(const char *ptr, uint16_t oneQFromat);
-    void extractCluster();
-    void extractTracker();
-    void extractStatsInfo();
-    void extractParkingAssisBin();
+    void extractCluster(const char *ptr, uint16_t oneQFromat);
+    void extractTracker(const char *ptr, uint16_t oneQFromat);
+    void extractStatsInfo(const char *ptr, uint16_t oneQFromat);
+    void extractParkingAssisBin(const char *ptr);
 
 private:
     const char *_pSrrPacket;
 
-    QList<DetObj_t> _detObjs;
-    QList<Cluster_t> _clusters;
-    QList<Tracker_t> _trackers;
-    QList<ParkingAssistBin_t> _parkingAssistBins;
-    QList<StatsInfo_t> _statsInfo;
-
-    uint32_t _num;
+    vector<DetObj_t> _detObjs;
+    vector<Cluster_t> _clusters;
+    vector<Tracker_t> _trackers;
+    vector<ParkingAssistBin_t> _parkingAssistBins;
+    StatsInfo_t _statsInfo;
 };
 
 #endif // SRRPACKET_H

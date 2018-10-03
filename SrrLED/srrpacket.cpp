@@ -79,25 +79,54 @@ void SrrPacket::query() {
 }
 
 void SrrPacket::extractDetObj(const char *ptr, uint16_t oneQFromat) {
-    double invQFormat = 1.0 / (1<<oneQFromat);
-    qDebug() << "invQFromat: "<< invQFormat;
     DetObj_t detObj;
-    const __detObj_t *rawDetObj = (struct __detObj_t *)ptr;
+    const __detObj_t *rawDetObj = (const struct __detObj_t *)ptr;
+    double invQFormat = 1.0 / (1 << oneQFromat);
 
     detObj.x = rawDetObj->x * invQFormat;
     detObj.y = rawDetObj->y * invQFormat;
-    detObj.speed = rawDetObj->speed * invQFormat;
+//    detObj.peakVal = rawDetObj->peakVal;
+    detObj.doppler = rawDetObj->speed * invQFormat;
     detObj.range = std::sqrt(detObj.x * detObj.x + detObj.y * detObj.y);
-    qDebug() << "x: " << detObj.x;
-    qDebug() << "y: " << detObj.y;
-    qDebug() << "speed: " << detObj.speed;
-    qDebug() << "range: " << detObj.range;
+
+    _detObjs.push_back(detObj);
 }
 
-void SrrPacket::extractCluster() {
-    qDebug() << "Not implement extraCluster";
+void SrrPacket::extractCluster(const char *ptr, uint16_t oneQFromat) {
+    Cluster_t clusterObj;
+    const __cluster_t *rawClusterObj = (const struct __cluster_t *)ptr;
+    double invQFormat = 1.0 / (1<<oneQFromat);
+
+    double x = rawClusterObj->x * invQFormat;
+    double y = rawClusterObj->y * invQFormat;
+    double x_size = rawClusterObj->x_size * invQFormat;
+    double y_size = rawClusterObj->y_size * invQFormat;
+
+    double x_loc;
+    double y_loc;
+
+    clusterObj.x_loc = x_loc;
+    clusterObj.y_loc = y_loc;
+    _clusters.push_back(clusterObj);
 }
 
-void SrrPacket::extractTracker() {
-    qDebug() << "Not implement extraTracker";
+void SrrPacket::extractTracker(const char *ptr, uint16_t oneQFromat) {
+    Tracker_t trackerObj;
+    const __tracker_t *rawTrackerObj = (const __tracker_t *)ptr;
+    double invQFormat = 1.0 / (1<<oneQFromat);
+
+    trackerObj.x = rawTrackerObj->x * invQFormat;
+    trackerObj.y = rawTrackerObj->y * invQFormat;
+    trackerObj.vx = rawTrackerObj->xd * invQFormat;
+    trackerObj.vy = rawTrackerObj->yd * invQFormat;
+
+    double x_size = rawTrackerObj->xSize * invQFormat;
+    double y_size = rawTrackerObj->ySize * invQFormat;
+    double x_loc;
+    double y_loc;
+
+    trackerObj.cluster_x_loc = x_loc;
+    trackerObj.cluster_y_loc = y_loc;
+    trackerObj.range = std::sqrt(trackerObj.x * trackerObj.x + trackerObj.y * trackerObj.y);
+    trackerObj.doppler = (trackerObj.x * trackerObj.vx + trackerObj.y*trackerObj.vy) / trackerObj.range;
 }

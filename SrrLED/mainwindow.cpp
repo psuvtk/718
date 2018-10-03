@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     _settings = new Settings(this);
     _commThread = new UartThread;
+    _plotHandle = ui->customPlot;
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
     _deviceState = CLOSE;
@@ -21,25 +22,24 @@ MainWindow::MainWindow(QWidget *parent) :
     tryFindSerialPort();
     displaySubframeParams();
 
-    connect(_commThread, &UartThread::speedChanged, this, &MainWindow::onSpeedChanged);
     connect(_commThread, &UartThread::frameChanged, this, &MainWindow::onFrameChanged);
     connect(this, &MainWindow::dispDone, _commThread, &UartThread::onDispDone);
     // GUI 设置
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-    auto w = ui->tabWidget->width();
-    auto h = ui->tabWidget->height() + statusBar()->height()
-             + ui->mainToolBar->height();
     auto dw = QApplication::desktop()->width();
     auto dh = QApplication::desktop()->height();
-    setGeometry((dw-w)/2, (dh-h)/2, w, h);
+    setGeometry(0, 0, dw, dh);
     qDebug() << dw << " " << dh;
 
     ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->twParamSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->twParamSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
+    ui->twPacketSubframe1->setColumnWidth(0, 280);
+    ui->twPacketSubframe2->setColumnWidth(0, 280);
+    ui->twParamSubframe1->setColumnWidth(0, 245);
+    ui->twParamSubframe2->setColumnWidth(0, 245);
     // 打开配置文件
     //    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
     //                                            tr("Open Config File"),
@@ -68,6 +68,19 @@ MainWindow::MainWindow(QWidget *parent) :
                                  this);
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
+
+//    const int numPoints = 500;
+//    QVector<double> x(numPoints), y(numPoints);
+//    for (int i=0; i<numPoints;i++) {
+//        x[i] = double(i) / numPoints - 0.5;
+//        y[i] = std::sqrt(1-x[i]*x[i]);
+//    }
+//    _plotHandle->addGraph();
+//    _plotHandle->graph(0)->addData(x, y);
+//    _plotHandle->xAxis->setRange(-2, 2);
+//    _plotHandle->yAxis->setRange(0, 2);
+//    _plotHandle->replot();
+
 }
 
 MainWindow::~MainWindow()
@@ -279,10 +292,6 @@ void MainWindow::displaySubframeParams() {
 
 }
 
-void MainWindow::onSpeedChanged(double speed) {
-    ui->lcdNumber->display(speed);
-}
-
 void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     QTableWidget *tw;
     if (pSrrPacket->getSubframeNumber() == 0) {
@@ -299,11 +308,11 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     QString numDetObjs = QString::number(pSrrPacket->getNumDetectedObj());
     QString numTLVs = QString::number(pSrrPacket->getNumTLVs());
     QString subframeNumber = QString::number(pSrrPacket->getSubframeNumber());
-    QString detObjs = QString::number(pSrrPacket->getDetObjs().length());
-    QString clusters = QString::number(pSrrPacket->getClusters().length());
-    QString trackers = QString::number(pSrrPacket->getTackers().length());
-    QString parkingAssitBins = QString::number(pSrrPacket->getParkingAssistBins().length());
-    QString statsInfo = QString::number(pSrrPacket->getStatsInfo().length());
+    QString detObjs = QString::number(pSrrPacket->getDetObjs().size());
+    QString clusters = QString::number(pSrrPacket->getClusters().size());
+    QString trackers = QString::number(pSrrPacket->getTackers().size());
+    QString parkingAssitBins = QString::number(pSrrPacket->getParkingAssistBins().size());
+//    QString statsInfo = QString::number(pSrrPacket->getStatsInfo().size());
 
 
     tw->setItem(0, 0, new QTableWidgetItem("0x0102 0x0304 0x0506 0x0708"));
@@ -320,7 +329,7 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     tw->setItem(0, 11, new QTableWidgetItem(clusters));
     tw->setItem(0, 12, new QTableWidgetItem(trackers));
     tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
-    tw->setItem(0, 13, new QTableWidgetItem(statsInfo));
+//    tw->setItem(0, 13, new QTableWidgetItem(statsInfo));
 
     emit dispDone();
 }
