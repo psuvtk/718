@@ -150,14 +150,15 @@ public:
 
     void query();
 
-    uint32_t getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
-    uint32_t getTotalPacketLen() { return ((struct __header_t *)_pSrrPacket)->totalPacketLen; }
-    uint32_t getPlatform() { return ((struct __header_t *)_pSrrPacket)->platform; }
-    uint32_t getFrameNumber() { return ((struct __header_t *)_pSrrPacket)->frameNumber; }
-    uint32_t getTimeCpuCycles() { return ((struct __header_t *)_pSrrPacket)->timeCpuCycles; }
-    uint32_t getNumDetectedObj() { return ((struct __header_t *)_pSrrPacket)->numDetectedObj; }
-    uint32_t getNumTLVs() { return ((struct __header_t *)_pSrrPacket)->numTLVs; }
-    uint32_t getSubframeNumber() { return ((struct __header_t *)_pSrrPacket)->subFrameNumber; }
+//    uint32_t getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
+    uint32_t getVersion() { return _pHeader->version; }
+    uint32_t getTotalPacketLen() { return _pHeader->totalPacketLen; }
+    uint32_t getPlatform() { return _pHeader->platform; }
+    uint32_t getFrameNumber() { return _pHeader->frameNumber; }
+    uint32_t getTimeCpuCycles() { return _pHeader->timeCpuCycles; }
+    uint32_t getNumDetectedObj() { return _pHeader->numDetectedObj; }
+    uint32_t getNumTLVs() { return _pHeader->numTLVs; }
+    uint32_t getSubframeNumber() { return _pHeader->subFrameNumber; }
 
     vector<DetObj_t>& getDetObjs() { return _detObjs; }
     vector<Tracker_t>& getTackers() { return _trackers; }
@@ -181,7 +182,7 @@ private:
     void extractParkingAssisBin(const char *tl);
 
 private:
-    const char *_pSrrPacket;
+    const struct __header_t *_pHeader;
 
     vector<DetObj_t> _detObjs;
     vector<Cluster_t> _clusters;

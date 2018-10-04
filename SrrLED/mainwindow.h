@@ -15,7 +15,7 @@
 #include "uartthread.h"
 #include "settings.h"
 #include "qcustomplot.h"
-
+#include "plotworker.h"
 
 namespace Ui {
 class MainWindow;
@@ -35,10 +35,10 @@ public:
 
     void tryFindSerialPort();
     void displaySubframeParams();
-
+    void dispPacketDetail(SrrPacket *);
     bool sensorStart();
+    void testPlot();
 
-    void plotUpdate();
 signals:
     void dispDone();
 
@@ -54,8 +54,8 @@ public slots:
 private:
     Ui::MainWindow *ui;
     Settings *_settings;
-    UartThread *_commThread;
-    QCustomPlot *_plotHandle;
+    CommThread *_commThread;
+    PlotWorker *_plotWorker;
 
     QSerialPort *_portUart;
     QSerialPort *_portData;

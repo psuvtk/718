@@ -30,7 +30,8 @@ SOURCES += \
     settings.cpp \
     dialogpreference.cpp \
     srrpacket.cpp \
-    qcustomplot.cpp
+    qcustomplot.cpp \
+    plotworker.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -38,7 +39,8 @@ HEADERS += \
     settings.h \
     dialogpreference.h \
     srrpacket.h \
-    qcustomplot.h
+    qcustomplot.h \
+    plotworker.h
 
 FORMS += \
         mainwindow.ui \

@@ -8,12 +8,12 @@
 #include <QDebug>
 #include <QByteArray>
 
-class UartThread : public QThread
+class CommThread : public QThread
 {
     Q_OBJECT
 
 public:
-    UartThread();
+    CommThread();
 
     void run();
     void setHandle(QSerialPort *_device);

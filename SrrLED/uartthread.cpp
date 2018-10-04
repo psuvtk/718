@@ -1,12 +1,12 @@
 #include "uartthread.h"
 
-UartThread::UartThread(){}
+CommThread::CommThread(){}
 
-void UartThread::setHandle(QSerialPort *handle) {
+void CommThread::setHandle(QSerialPort *handle) {
     _device = handle;
 }
 
-void UartThread::run() {
+void CommThread::run() {
     QByteArray SYNC = QByteArray::fromHex("0201040306050807");
     QByteArray bufRecv;
     QByteArray bufFrame;
@@ -54,12 +54,12 @@ labelRecover:
     }
 }
 
-void UartThread::waitForDispDone() {
+void CommThread::waitForDispDone() {
     _isDispDone = false;
     while (!_isDispDone)
         ;
 }
 
-void UartThread::onDispDone() {
+void CommThread::onDispDone() {
     _isDispDone = true;
 }

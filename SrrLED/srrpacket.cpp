@@ -2,7 +2,7 @@
 #include <QDebug>
 
 SrrPacket::SrrPacket(const char *pSrrPacket) {
-    _pSrrPacket = pSrrPacket;
+    _pHeader = reinterpret_cast<const struct __header_t*>(pSrrPacket);
 
     const char *tl = pSrrPacket + HEAD_STRUCT_SIZE_BYTES;
     query();
@@ -47,12 +47,6 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
 
 void SrrPacket::query() {
     qDebug() << "\n\nPacket Header-------------";
-    qDebug("Sync: 0x%04x 0x%04x 0x%04x 0x%04x",
-           *(uint16_t*)_pSrrPacket,
-           *(uint16_t*)(_pSrrPacket+2),
-           *(uint16_t*)(_pSrrPacket+4),
-           *(uint16_t*)(_pSrrPacket+6));
-
     qDebug("Version: 0x%08X", getVersion()) ;
     qDebug() << "TotalPacketLen: " << getTotalPacketLen();
     qDebug("Platform: 0x%08X", getPlatform());
@@ -64,7 +58,6 @@ void SrrPacket::query() {
     qDebug() << "----------------------------";
 
     // TODO: display detobj tracker cluster ...
-
 }
 
 void SrrPacket::extractDetObj(const char *tl) {
@@ -79,7 +72,7 @@ void SrrPacket::extractDetObj(const char *tl) {
         DetObj_t detObj;
         detObj.x = rawDetObj->x * invQFormat;
         detObj.y = rawDetObj->y * invQFormat;
-    //    detObj.peakVal = rawDetObj->peakVal;
+        detObj.peakVal = rawDetObj->peakVal;
         detObj.doppler = rawDetObj->speed * invQFormat;
         detObj.range = std::sqrt(detObj.x * detObj.x + detObj.y * detObj.y);
 
@@ -137,12 +130,19 @@ void SrrPacket::extractTracker(const char *tl) {
     qDebug() << "size of _trackers: " << _trackers.size();
 }
 
-void SrrPacket::extractStatsInfo(const char *tl)
-{
-    qDebug() << "Not impl SrrPacket::extractStatsInfo(const char *ptr)";
-}
-
 void SrrPacket::extractParkingAssisBin(const char *tl)
 {
     qDebug() << "Not impl SrrPacket::extractParkingAssisBin(const char *ptr)";
+}
+
+void SrrPacket::extractStatsInfo(const char *tl)
+{
+    const __statsInfo_t *rawStatsInfo = reinterpret_cast<const __statsInfo_t *>(tl);
+
+    _statsInfo.interFrameProcessingTime = rawStatsInfo->interFrameProcessingTime;
+    _statsInfo.transmitOutputTime = rawStatsInfo->transmitOutputTime;
+    _statsInfo.interFrameProcessingMargin = rawStatsInfo->interFrameProcessingMargin;
+    _statsInfo.interChirpProcessingMargin = rawStatsInfo->interChirpProcessingMargin;
+    _statsInfo.activeFrameCpuLoad = rawStatsInfo->activeFrameCpuLoad;
+    _statsInfo.interFrameCpuLoad = rawStatsInfo->interFrameCpuLoad;
 }

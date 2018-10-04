@@ -11,8 +11,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setApplicationName("SrrLED");
 
     _settings = new Settings(this);
-    _commThread = new UartThread;
-    _plotHandle = ui->customPlot;
+    _commThread = new CommThread;
+    _plotWorker = new PlotWorker(ui->customPlot);
+
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
     _deviceState = CLOSE;
@@ -22,10 +23,9 @@ MainWindow::MainWindow(QWidget *parent) :
     _commThread->start();
     tryFindSerialPort();
     displaySubframeParams();
-    plotUpdate();
 
-    connect(_commThread, &UartThread::frameChanged, this, &MainWindow::onFrameChanged);
-    connect(this, &MainWindow::dispDone, _commThread, &UartThread::onDispDone);
+    connect(_commThread, &CommThread::frameChanged, this, &MainWindow::onFrameChanged);
+    connect(this, &MainWindow::dispDone, _commThread, &CommThread::onDispDone);
 
     // GUI 设置
     menuBar()->hide();
@@ -72,6 +72,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
 
+
+    testPlot();
+
 }
 
 MainWindow::~MainWindow()
@@ -81,6 +84,7 @@ MainWindow::~MainWindow()
     if (_portData->isOpen()) _portData->close();
 
     delete _commThread;
+    delete _plotWorker;
     delete _portUart;
     delete _portData;
     delete ui;
@@ -265,6 +269,37 @@ retry:
     return true;
 }
 
+void MainWindow::testPlot()
+{
+    _plotWorker->beginReplot();
+    // detObj   点
+    QVector<double> xDetObj, yDetObj;
+    xDetObj << 1<<2<<3<<4<<5;
+    yDetObj << 5<<4<<3<<2<<1;
+    _plotWorker->drawDetObj(xDetObj, yDetObj);
+
+
+
+    // Cluster 框
+    QVector<Cluster_t> clusters;
+    clusters << Cluster_t{ 3,4,0.5,0.5};
+    if (clusters.size() != 0) {
+        for (auto cluster: clusters) {
+            _plotWorker->drawRect(cluster.xCenter, cluster.yCenter,
+                                  cluster.xSize, cluster.ySize);
+        }
+    }
+
+    // tracker  点(菱形)  聚类框
+    QVector<double> xTracker, yTracker;
+    xTracker << 0.5 << 1.2 << 3.3;
+    yTracker << 10 << 20 << 30;
+    _plotWorker->drawTracker(xTracker, yTracker);
+
+
+    _plotWorker->endReplot();
+}
+
 
 void MainWindow::displaySubframeParams() {
     qDebug() << "Not impl displaySubframeParams";
@@ -284,7 +319,8 @@ void MainWindow::displaySubframeParams() {
 
 }
 
-void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
+void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
+{
     QTableWidget *tw;
     if (pSrrPacket->getSubframeNumber() == 0) {
         tw = ui->twPacketSubframe1;
@@ -321,51 +357,49 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     tw->setItem(0, 11, new QTableWidgetItem(clusters));
     tw->setItem(0, 12, new QTableWidgetItem(trackers));
     tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
-//    tw->setItem(0, 13, new QTableWidgetItem(statsInfo));
+}
 
-//    qDebug() << "Main :: display Done!";
+void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
+    dispPacketDetail(pSrrPacket);
+
+    _plotWorker->beginReplot();
+    // detObj   点
+    QVector<double> xDetObj, yDetObj;
+    auto objs = pSrrPacket->getDetObjs();
+    if (objs.size() != 0) {
+        for (auto obj: objs) {
+            xDetObj << obj.x;
+            yDetObj << obj.y;
+        }
+        _plotWorker->drawDetObj(xDetObj, yDetObj);
+    }
+
+
+    // Cluster 框
+    auto clusters = pSrrPacket->getClusters();
+    if (clusters.size() != 0) {
+        for (auto cluster: clusters) {
+            _plotWorker->drawRect(cluster.xCenter, cluster.yCenter,
+                                  cluster.xSize, cluster.ySize);
+        }
+    }
+
+    // tracker  点(菱形)  聚类框
+    QVector<double> xTracker, yTracker;
+    auto trackers = pSrrPacket->getTackers();
+
+    if (trackers.size() != 0) {
+        for (auto tracker: trackers) {
+            _plotWorker->drawRect(tracker.x, tracker.y,
+                                  tracker.xSize, tracker.ySize);
+            xTracker << tracker.x;
+            yTracker << tracker.y;
+        }
+        _plotWorker->drawTracker(xTracker, yTracker);
+    }
+
+
+    _plotWorker->endReplot();
     emit dispDone();
 }
 
-void MainWindow::plotUpdate()
-{
-    const double PI = 3.1415926535;
-    _plotHandle->addGraph();
-
-
-    for (int i = 30; i <= 150; i+=15) {
-        QCPItemStraightLine *item = new QCPItemStraightLine(_plotHandle);
-        item->setPen(QPen(Qt::white));
-        item->point1->setCoords(0, 0);
-        item->point2->setCoords(cos(PI*i/180.0), sin(PI*i/180.0));
-    }
-
-    QVector<double> rs;
-    rs << 15.0 << 30.0 << 45.0 << 60.0 << 75.0;
-    for (auto r: rs) {
-        QCPItemCurve *item = new QCPItemCurve(_plotHandle);
-        item->setPen(QPen(Qt::white));
-
-
-        double a = 4.0/3*std::tan(PI*30.0/180);
-        double sx = r*cos(PI*30/180.0);
-        double sy = r*sin(PI*30/180.0);
-        double ex = r*cos(PI*150/180.0);
-        double ey = r*sin(PI*150/180.0);
-
-        item->start->setCoords(sx, sy);
-        item->end->setCoords(ex, ey);
-        item->startDir->setCoords(sx - a*sy,  sy + a*sx);
-        item->endDir->setCoords(ex + a*ey,  ey - a*ex);
-    }
-
-
-
-    _plotHandle->setBackground(QBrush(Qt::darkBlue));
-    _plotHandle->xAxis->setRange(-40, 40);
-    _plotHandle->yAxis->setRange(0, 80);
-    _plotHandle->xAxis->grid()->setVisible(false);
-    _plotHandle->yAxis->grid()->setVisible(false);
-    _plotHandle->rescaleAxes();
-    _plotHandle->replot();
-}
