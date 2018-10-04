@@ -9,7 +9,7 @@
 #include <QFileDialog>
 #include <QDesktopWidget>
 #include <QTableWidgetItem>
-
+#include <cmath>
 #include "srrpacket.h"
 #include "dialogpreference.h"
 #include "uartthread.h"
@@ -38,6 +38,7 @@ public:
 
     bool sensorStart();
 
+    void plotUpdate();
 signals:
     void dispDone();
 

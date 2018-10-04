@@ -17,20 +17,23 @@ MainWindow::MainWindow(QWidget *parent) :
     _portData = new QSerialPort;
     _deviceState = CLOSE;
 
+
     _commThread->setHandle(_portData);
     _commThread->start();
     tryFindSerialPort();
     displaySubframeParams();
+    plotUpdate();
 
     connect(_commThread, &UartThread::frameChanged, this, &MainWindow::onFrameChanged);
     connect(this, &MainWindow::dispDone, _commThread, &UartThread::onDispDone);
+
     // GUI 设置
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-    auto dw = QApplication::desktop()->width();
-    auto dh = QApplication::desktop()->height();
-    setGeometry(0, 0, dw, dh);
-    qDebug() << dw << " " << dh;
+//    auto dw = QApplication::desktop()->width();
+//    auto dh = QApplication::desktop()->height();
+//    setGeometry(0, 0, dw, dh);
+//    qDebug() << dw << " " << dh;
 
     ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -68,18 +71,6 @@ MainWindow::MainWindow(QWidget *parent) :
                                  this);
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
-
-//    const int numPoints = 500;
-//    QVector<double> x(numPoints), y(numPoints);
-//    for (int i=0; i<numPoints;i++) {
-//        x[i] = double(i) / numPoints - 0.5;
-//        y[i] = std::sqrt(1-x[i]*x[i]);
-//    }
-//    _plotHandle->addGraph();
-//    _plotHandle->graph(0)->addData(x, y);
-//    _plotHandle->xAxis->setRange(-2, 2);
-//    _plotHandle->yAxis->setRange(0, 2);
-//    _plotHandle->replot();
 
 }
 
@@ -274,6 +265,7 @@ retry:
     return true;
 }
 
+
 void MainWindow::displaySubframeParams() {
     qDebug() << "Not impl displaySubframeParams";
     ui->twParamSubframe1->setColumnWidth(0, 190);
@@ -331,5 +323,49 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
 //    tw->setItem(0, 13, new QTableWidgetItem(statsInfo));
 
+//    qDebug() << "Main :: display Done!";
     emit dispDone();
+}
+
+void MainWindow::plotUpdate()
+{
+    const double PI = 3.1415926535;
+    _plotHandle->addGraph();
+
+
+    for (int i = 30; i <= 150; i+=15) {
+        QCPItemStraightLine *item = new QCPItemStraightLine(_plotHandle);
+        item->setPen(QPen(Qt::white));
+        item->point1->setCoords(0, 0);
+        item->point2->setCoords(cos(PI*i/180.0), sin(PI*i/180.0));
+    }
+
+    QVector<double> rs;
+    rs << 15.0 << 30.0 << 45.0 << 60.0 << 75.0;
+    for (auto r: rs) {
+        QCPItemCurve *item = new QCPItemCurve(_plotHandle);
+        item->setPen(QPen(Qt::white));
+
+
+        double a = 4.0/3*std::tan(PI*30.0/180);
+        double sx = r*cos(PI*30/180.0);
+        double sy = r*sin(PI*30/180.0);
+        double ex = r*cos(PI*150/180.0);
+        double ey = r*sin(PI*150/180.0);
+
+        item->start->setCoords(sx, sy);
+        item->end->setCoords(ex, ey);
+        item->startDir->setCoords(sx - a*sy,  sy + a*sx);
+        item->endDir->setCoords(ex + a*ey,  ey - a*ex);
+    }
+
+
+
+    _plotHandle->setBackground(QBrush(Qt::darkBlue));
+    _plotHandle->xAxis->setRange(-40, 40);
+    _plotHandle->yAxis->setRange(0, 80);
+    _plotHandle->xAxis->grid()->setVisible(false);
+    _plotHandle->yAxis->grid()->setVisible(false);
+    _plotHandle->rescaleAxes();
+    _plotHandle->replot();
 }

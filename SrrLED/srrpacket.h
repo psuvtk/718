@@ -9,27 +9,30 @@ using std::vector;
 
 struct DetObj_t
 {
-    double  doppler;        /*!< @brief Doppler index */
-    double peakVal;     /*!< @brief Peak value */
-    double  x;             /*!< @brief x - coordinate in meters. */
-    double  y;             /*!< @brief y - coordinate in meters.  */
+    double x;             /*!< @brief x - coordinate in meters. */
+    double y;             /*!< @brief y - coordinate in meters.  */
+    double doppler;
+    double peakVal;
     double range;
 };
 
 struct Cluster_t
 {
-    double x_loc;               /**< the clustering center on x direction */
-    double y_loc;               /**< the clustering center on y direction */
+    double xCenter;
+    double yCenter;
+    double xSize;
+    double ySize;
+
 };
 
 struct Tracker_t
 {
-    double x;                  /**< the tracking output -> x co-ordinate */
-    double y;                  /**< the tracking output -> y co-ordinate */
-    double vx;                 /**< velocity in the x direction */
-    double vy;                 /**< velocity in the y direction */
-    double cluster_x_loc;
-    double cluster_y_loc;
+    double x;
+    double y;
+    double vx;
+    double vy;
+    double xSize;
+    double ySize;
     double range;
     double doppler;
 };
@@ -162,17 +165,20 @@ public:
     vector<ParkingAssistBin_t>& getParkingAssistBins() { return _parkingAssistBins; }
     StatsInfo_t getStatsInfo() { return _statsInfo; }
 
+    void setDetObjs(const vector<DetObj_t> &detObjs);
+
+
 private:
     uint32_t getTlvType(const char *p) { return ((const struct __tl_t *)p)->type; }
     uint32_t getTlvLength(const char *p) { return ((const struct __tl_t *)p)->length; }
-    uint32_t getDescrNumObj(const char *p) { return ((const struct __dataObjDescr_t *)p)->numObj; }
-    uint32_t getDescrQFormat(const char *p) { return ((const struct __dataObjDescr_t *)p)->xyzQFormat; }
+    uint16_t getDescrNumObj(const char *p) { return ((const struct __dataObjDescr_t *)p)->numObj; }
+    uint16_t getDescrQFormat(const char *p) { return ((const struct __dataObjDescr_t *)p)->xyzQFormat; }
 
-    void extractDetObj(const char *ptr, uint16_t oneQFromat);
-    void extractCluster(const char *ptr, uint16_t oneQFromat);
-    void extractTracker(const char *ptr, uint16_t oneQFromat);
-    void extractStatsInfo(const char *ptr, uint16_t oneQFromat);
-    void extractParkingAssisBin(const char *ptr);
+    void extractDetObj(const char *tl);
+    void extractCluster(const char *tl);
+    void extractTracker(const char *tl);
+    void extractStatsInfo(const char *tl);
+    void extractParkingAssisBin(const char *tl);
 
 private:
     const char *_pSrrPacket;
