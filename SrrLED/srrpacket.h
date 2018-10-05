@@ -119,8 +119,6 @@ class SrrPacket {
         int16_t ySize;              /**< cluster size (y direction). */
     };
 
-
-
     struct __parkingAssistBin_t
     {
         uint16_t range;
@@ -147,10 +145,9 @@ class SrrPacket {
 public:
     SrrPacket() = delete;
     explicit SrrPacket(const char *pSrrPacket);
-
+    bool isValid() { return _valid; }
     void query();
 
-//    uint32_t getVersion() { return ((struct __header_t *)_pSrrPacket)->version; }
     uint32_t getVersion() { return _pHeader->version; }
     uint32_t getTotalPacketLen() { return _pHeader->totalPacketLen; }
     uint32_t getPlatform() { return _pHeader->platform; }
@@ -189,6 +186,8 @@ private:
     vector<Tracker_t> _trackers;
     vector<ParkingAssistBin_t> _parkingAssistBins;
     StatsInfo_t _statsInfo;
+
+    bool _valid = true;
 };
 
 #endif // SRRPACKET_H

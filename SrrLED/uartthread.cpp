@@ -48,8 +48,10 @@ labelRecover:
 
             // 处理完整一帧
             SrrPacket packet(bufFrame.data());
-            emit frameChanged(&packet);
-            waitForDispDone();
+            if (packet.isValid()) {
+                emit frameChanged(&packet);
+                waitForDispDone();
+            }
         }
     }
 }
@@ -58,6 +60,7 @@ void CommThread::waitForDispDone() {
     _isDispDone = false;
     while (!_isDispDone)
         ;
+    msleep(15);
 }
 
 void CommThread::onDispDone() {

@@ -3,41 +3,49 @@
 PlotWorker::PlotWorker(QCustomPlot *handler)
 {
     _handler = handler;
-    __drawBackground();
-
+    drawBackground();
 }
 
-void PlotWorker::drawRect(double xCenter, double yCenter, double xSize, double ySize)
+void PlotWorker::drawBackground()
+{
+    beginReplot();
+    endReplot();
+}
+
+void PlotWorker::drawDetObj(const QVector<double> &x, const QVector<double> &y, QPen pen)
+{
+    _handler->addGraph();
+    qDebug() << "Graph Count: "<< _handler->graphCount();
+
+    _handler->graph(0)->setPen(pen);
+    _handler->graph(0)->setLineStyle(QCPGraph::lsNone);
+    _handler->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 7.5));
+    _handler->graph(0)->setData(x, y);
+}
+
+void PlotWorker::drawCluster(double xCenter, double yCenter, double xSize, double ySize, QPen pen)
 {
     QCPItemRect *rect= new QCPItemRect(_handler);
-    rect->setPen(QPen(Qt::cyan));
+    rect->setPen(pen);
     rect->topLeft->setCoords(xCenter-xSize, yCenter+ySize);
     rect->bottomRight->setCoords(xCenter+xSize, yCenter-ySize);
 }
 
-void PlotWorker::drawDetObj(const QVector<double> &x, const QVector<double> &y)
+void PlotWorker::drawTracker(const QVector<double> &x, const QVector<double> &y, QPen pen)
 {
     _handler->addGraph();
-    _handler->graph(0)->setPen(QPen(Qt::red, 2));
-    _handler->graph(0)->setLineStyle(QCPGraph::lsNone);
-    _handler->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 5));
-    _handler->graph(0)->setData(x, y);
-}
-
-void PlotWorker::drawTracker(const QVector<double> &x, const QVector<double> &y)
-{
-    _handler->addGraph();
-    _handler->graph(1)->setPen(QPen(Qt::darkGreen, 2));
-    _handler->graph(1)->setLineStyle(QCPGraph::lsNone);
-    _handler->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDiamond, 25));
-    _handler->graph(1)->setData(x, y);
+    int numGraph = _handler->graphCount();
+    _handler->graph(numGraph-1)->setPen(pen);
+    _handler->graph(numGraph-1)->setLineStyle(QCPGraph::lsNone);
+    _handler->graph(numGraph-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDiamond, 20));
+    _handler->graph(numGraph-1)->setData(x, y);
 }
 
 
 void PlotWorker::beginReplot()
 {
-    _handler->clearGraphs();
-    _handler->clearItems();
+    if (_handler->graphCount() != 0) _handler->clearGraphs();
+    if (_handler->itemCount() != 0) _handler->clearItems();
     __drawBackground();
 }
 
@@ -52,12 +60,17 @@ void PlotWorker::endReplot()
     _handler->yAxis->setBasePen(QPen(Qt::white));
     _handler->yAxis->setTickPen(QPen(Qt::white));
     _handler->yAxis->setSubTickPen(QPen(Qt::white));
-    _handler->xAxis->setRange(-40, 40);
-    _handler->yAxis->setRange(0, 80);
     _handler->xAxis->grid()->setVisible(false);
     _handler->yAxis->grid()->setVisible(false);
 
-    _handler->replot();
+    if (_enableNearView) {
+        _handler->xAxis->setRange(-8, 8);
+        _handler->yAxis->setRange(0, 16);
+    } else {
+        _handler->xAxis->setRange(-40, 40);
+        _handler->yAxis->setRange(0, 80);
+    }
+
     _handler->replot();
 }
 
@@ -67,7 +80,7 @@ void PlotWorker::__drawBackground()
 
     for (int i = 30; i <= 150; i+=15) {
         QCPItemStraightLine *item = new QCPItemStraightLine(_handler);
-        item->setPen(QPen(Qt::white));
+        item->setPen(QPen(Qt::gray));
         item->point1->setCoords(0, 0);
         item->point2->setCoords(cos(PI*i/180.0), sin(PI*i/180.0));
     }
@@ -76,7 +89,7 @@ void PlotWorker::__drawBackground()
     rs << 15.0 << 30.0 << 45.0 << 60.0 << 75.0;
     for (auto r: rs) {
         QCPItemCurve *item = new QCPItemCurve(_handler);
-        item->setPen(QPen(Qt::white));
+        item->setPen(QPen(Qt::darkGray));
 
         double a = 4.0/3*std::tan(PI*30.0/180);
         double sx = r*cos(PI*30/180.0);
@@ -89,4 +102,9 @@ void PlotWorker::__drawBackground()
         item->startDir->setCoords(sx - a*sy,  sy + a*sx);
         item->endDir->setCoords(ex + a*ey,  ey - a*ex);
     }
+}
+
+void PlotWorker::setEnableNearView(bool value)
+{
+    _enableNearView = value;
 }

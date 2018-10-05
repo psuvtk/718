@@ -51,6 +51,9 @@ public slots:
     void onActionDisconnect();
     void onActionSettings();
 
+private slots:
+    void on_cbNearView_toggled(bool checked);
+
 private:
     Ui::MainWindow *ui;
     Settings *_settings;

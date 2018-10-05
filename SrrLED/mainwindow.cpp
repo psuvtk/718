@@ -11,21 +11,26 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setApplicationName("SrrLED");
 
     _settings = new Settings(this);
+    // 初始化 通信线程
     _commThread = new CommThread;
-    _plotWorker = new PlotWorker(ui->customPlot);
+    connect(_commThread, &CommThread::frameChanged, this, &MainWindow::onFrameChanged);
+    connect(this, &MainWindow::dispDone, _commThread, &CommThread::onDispDone);
 
+    // 初始化 绘制线程
+    _plotWorker = new PlotWorker(ui->customPlot);
+    _plotWorker->drawBackground();
+
+    // 初始化 串口
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
     _deviceState = CLOSE;
-
-
     _commThread->setHandle(_portData);
     _commThread->start();
+
     tryFindSerialPort();
     displaySubframeParams();
 
-    connect(_commThread, &CommThread::frameChanged, this, &MainWindow::onFrameChanged);
-    connect(this, &MainWindow::dispDone, _commThread, &CommThread::onDispDone);
+
 
     // GUI 设置
     menuBar()->hide();
@@ -73,8 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
 
 
-    testPlot();
-
+//    testPlot();
 }
 
 MainWindow::~MainWindow()
@@ -285,7 +289,7 @@ void MainWindow::testPlot()
     clusters << Cluster_t{ 3,4,0.5,0.5};
     if (clusters.size() != 0) {
         for (auto cluster: clusters) {
-            _plotWorker->drawRect(cluster.xCenter, cluster.yCenter,
+            _plotWorker->drawCluster(cluster.xCenter, cluster.yCenter,
                                   cluster.xSize, cluster.ySize);
         }
     }
@@ -340,8 +344,6 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
     QString clusters = QString::number(pSrrPacket->getClusters().size());
     QString trackers = QString::number(pSrrPacket->getTackers().size());
     QString parkingAssitBins = QString::number(pSrrPacket->getParkingAssistBins().size());
-//    QString statsInfo = QString::number(pSrrPacket->getStatsInfo().size());
-
 
     tw->setItem(0, 0, new QTableWidgetItem("0x0102 0x0304 0x0506 0x0708"));
     tw->setItem(0, 1, new QTableWidgetItem(version));
@@ -371,7 +373,14 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
             xDetObj << obj.x;
             yDetObj << obj.y;
         }
-        _plotWorker->drawDetObj(xDetObj, yDetObj);
+
+        if (pSrrPacket->getSubframeNumber() == 0) {
+            // SRR
+            _plotWorker->drawDetObj(xDetObj, yDetObj, QPen(Qt::darkYellow, 3));
+        } else {
+            // USRR
+            _plotWorker->drawDetObj(xDetObj, yDetObj, QPen(Qt::darkCyan, 3));
+        }
     }
 
 
@@ -379,8 +388,8 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     auto clusters = pSrrPacket->getClusters();
     if (clusters.size() != 0) {
         for (auto cluster: clusters) {
-            _plotWorker->drawRect(cluster.xCenter, cluster.yCenter,
-                                  cluster.xSize, cluster.ySize);
+            _plotWorker->drawCluster(cluster.xCenter, cluster.yCenter,
+                                     cluster.xSize, cluster.ySize);
         }
     }
 
@@ -390,16 +399,27 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
 
     if (trackers.size() != 0) {
         for (auto tracker: trackers) {
-            _plotWorker->drawRect(tracker.x, tracker.y,
-                                  tracker.xSize, tracker.ySize);
+            _plotWorker->drawCluster(tracker.x, tracker.y,
+                                     tracker.xSize, tracker.ySize,
+                                     QPen(Qt::green, 2));
             xTracker << tracker.x;
             yTracker << tracker.y;
+            qDebug() << "++++++++++++";
+            qDebug() << "vx:" << tracker.vx;
+            qDebug() << "vy: " << tracker.vy;
+            qDebug() << "++++++++++++";
+
         }
         _plotWorker->drawTracker(xTracker, yTracker);
     }
-
 
     _plotWorker->endReplot();
     emit dispDone();
 }
 
+
+void MainWindow::on_cbNearView_toggled(bool checked)
+{
+    _plotWorker->setEnableNearView(checked);
+    _plotWorker->drawBackground();
+}

@@ -10,22 +10,22 @@ public:
     PlotWorker() = delete;
     explicit PlotWorker(QCustomPlot *handler);
 
-    void drawRect(double xCenter, double yCenter, double xSize, double ySize);
-    void drawDetObj(const QVector<double> &x, const QVector<double> &y);
-    void drawCluster();
-    void drawTracker(const QVector<double> &x, const QVector<double> &y);
+    void drawBackground();
+
+    void drawDetObj(const QVector<double> &x, const QVector<double> &y, QPen pen = QPen(Qt::cyan, 2));
+    void drawCluster(double xCenter, double yCenter, double xSize, double ySize, QPen pen = QPen(Qt::cyan , 3));
+    void drawTracker(const QVector<double> &x, const QVector<double> &y, QPen pen = QPen(Qt::green, 2));
 
     void beginReplot();
     void endReplot();
 
+    void setEnableNearView(bool value);
+
 private:
-    void __drawRect();
-    void __drawPoint();
-    void __drawLine();
     void __drawBackground();
 
-
-    QCustomPlot *_handler;
+    QCustomPlot *_handler = nullptr;
+    bool _enableNearView = false;
 };
 
 #endif // PLOTWORKER_H

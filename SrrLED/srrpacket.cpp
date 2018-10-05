@@ -2,6 +2,7 @@
 #include <QDebug>
 
 SrrPacket::SrrPacket(const char *pSrrPacket) {
+    int errCount = 0;
     _pHeader = reinterpret_cast<const struct __header_t*>(pSrrPacket);
 
     const char *tl = pSrrPacket + HEAD_STRUCT_SIZE_BYTES;
@@ -25,11 +26,12 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_TRACKED_OBJ:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_TRACKED_OBJ";
-            extractParkingAssisBin(tl);
+            extractTracker(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_PARKING_ASSIST:
             qDebug() << "tlvType => MMWDEMO_UART_MSG_PARKING_ASSIST";
+            extractParkingAssisBin(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_STATS:
@@ -39,6 +41,8 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
             break;
         default:
             qDebug() << "tlvType => Unkown";
+            _valid = false;
+            if (errCount++ > 2 ) return;
             break;
         }
     }

@@ -17,7 +17,7 @@
    <widget class="QLCDNumber" name="lcdNumber">
     <property name="geometry">
      <rect>
-      <x>1180</x>
+      <x>1100</x>
       <y>850</y>
       <width>291</width>
       <height>151</height>
@@ -28,7 +28,7 @@
     <property name="geometry">
      <rect>
       <x>1010</x>
-      <y>590</y>
+      <y>600</y>
       <width>781</width>
       <height>221</height>
      </rect>
@@ -319,6 +319,38 @@
        <height>931</height>
       </rect>
      </property>
+    </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_2">
+    <property name="geometry">
+     <rect>
+      <x>1440</x>
+      <y>860</y>
+      <width>261</width>
+      <height>131</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <widget class="QWidget" name="verticalLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>231</width>
+       <height>101</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QCheckBox" name="cbNearView">
+        <property name="text">
+         <string>Near View</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
