@@ -276,30 +276,14 @@ retry:
 void MainWindow::testPlot()
 {
     _plotWorker->beginReplot();
-    // detObj   点
-    QVector<double> xDetObj, yDetObj;
-    xDetObj << 1<<2<<3<<4<<5;
-    yDetObj << 5<<4<<3<<2<<1;
-    _plotWorker->drawDetObj(xDetObj, yDetObj);
+
 
 
 
     // Cluster 框
-    QVector<Cluster_t> clusters;
-    clusters << Cluster_t{ 3,4,0.5,0.5};
-    if (clusters.size() != 0) {
-        for (auto cluster: clusters) {
-            _plotWorker->drawCluster(cluster.xCenter, cluster.yCenter,
-                                  cluster.xSize, cluster.ySize);
-        }
-    }
-
-    // tracker  点(菱形)  聚类框
-    QVector<double> xTracker, yTracker;
-    xTracker << 0.5 << 1.2 << 3.3;
-    yTracker << 10 << 20 << 30;
-    _plotWorker->drawTracker(xTracker, yTracker);
-
+    vector<Cluster_t> clusters{Cluster_t{ 8, 14,1.5,1.5}};
+//    clusters << Cluster_t{ 8, 14,1.5,1.5};
+    _plotWorker->drawClusters(clusters);
 
     _plotWorker->endReplot();
 }
@@ -361,59 +345,37 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
     tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
 }
 
+void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
+{
+    qSort(trackers.begin(), trackers.end(), [](const Tracker_t a, const Tracker_t b){
+        return (a.x * a.x + a.y * a.y) < (b.x * b.x + b.y * b.y);
+    });
+
+    for (auto t: trackers) {
+        if (t.vy > 0) {
+            double speed = t.vx * t.vx + t.vy * t.vy;
+            ui->lcdNumber->display(QString::number(speed));
+            return;
+        }
+    }
+    ui->lcdNumber->display("0");
+}
+
 void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     dispPacketDetail(pSrrPacket);
+    dispSpeed(pSrrPacket->getTackers());
 
     _plotWorker->beginReplot();
-    // detObj   点
-    QVector<double> xDetObj, yDetObj;
-    auto objs = pSrrPacket->getDetObjs();
-    if (objs.size() != 0) {
-        for (auto obj: objs) {
-            xDetObj << obj.x;
-            yDetObj << obj.y;
-        }
-
-        if (pSrrPacket->getSubframeNumber() == 0) {
-            // SRR
-            _plotWorker->drawDetObj(xDetObj, yDetObj, QPen(Qt::darkYellow, 3));
-        } else {
-            // USRR
-            _plotWorker->drawDetObj(xDetObj, yDetObj, QPen(Qt::darkCyan, 3));
-        }
+    if (pSrrPacket->getSubframeNumber() == 0) { // SRR
+        _plotWorker->drawSrrDetObj(pSrrPacket->getDetObjs());
+    } else { // USRR
+        _plotWorker->drawUsrrDetObjs(pSrrPacket->getDetObjs());
     }
-
-
-    // Cluster 框
-    auto clusters = pSrrPacket->getClusters();
-    if (clusters.size() != 0) {
-        for (auto cluster: clusters) {
-            _plotWorker->drawCluster(cluster.xCenter, cluster.yCenter,
-                                     cluster.xSize, cluster.ySize);
-        }
-    }
-
-    // tracker  点(菱形)  聚类框
-    QVector<double> xTracker, yTracker;
-    auto trackers = pSrrPacket->getTackers();
-
-    if (trackers.size() != 0) {
-        for (auto tracker: trackers) {
-            _plotWorker->drawCluster(tracker.x, tracker.y,
-                                     tracker.xSize, tracker.ySize,
-                                     QPen(Qt::green, 2));
-            xTracker << tracker.x;
-            yTracker << tracker.y;
-            qDebug() << "++++++++++++";
-            qDebug() << "vx:" << tracker.vx;
-            qDebug() << "vy: " << tracker.vy;
-            qDebug() << "++++++++++++";
-
-        }
-        _plotWorker->drawTracker(xTracker, yTracker);
-    }
-
+    _plotWorker->drawClusters(pSrrPacket->getClusters());
+    _plotWorker->drawTrackers(pSrrPacket->getTackers());
+    _plotWorker->drawParkingAssitBins(pSrrPacket->getParkingAssistBins());
     _plotWorker->endReplot();
+
     emit dispDone();
 }
 
@@ -422,4 +384,29 @@ void MainWindow::on_cbNearView_toggled(bool checked)
 {
     _plotWorker->setEnableNearView(checked);
     _plotWorker->drawBackground();
+}
+
+void MainWindow::on_cbSrrdDetObj_toggled(bool checked)
+{
+    _plotWorker->setEnableSrrDetObj(checked);
+}
+
+void MainWindow::on_cbUsrrDetObj_toggled(bool checked)
+{
+    _plotWorker->setEnableUsrrDetObj(checked);
+}
+
+void MainWindow::on_cbCluster_toggled(bool checked)
+{
+    _plotWorker->setEnableClusters(checked);
+}
+
+void MainWindow::on_cbTrackers_toggled(bool checked)
+{
+    _plotWorker->setEnableTracker(checked);
+}
+
+void MainWindow::on_cbParkingAssisBins_toggled(bool checked)
+{
+    _plotWorker->setEnableParkingAssitBins(checked);
 }

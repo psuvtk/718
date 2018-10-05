@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1920</width>
-    <height>1080</height>
+    <width>1890</width>
+    <height>1180</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <widget class="QLCDNumber" name="lcdNumber">
     <property name="geometry">
      <rect>
-      <x>1100</x>
-      <y>850</y>
+      <x>1070</x>
+      <y>610</y>
       <width>291</width>
       <height>151</height>
      </rect>
@@ -28,7 +28,7 @@
     <property name="geometry">
      <rect>
       <x>1010</x>
-      <y>600</y>
+      <y>360</y>
       <width>781</width>
       <height>221</height>
      </rect>
@@ -124,7 +124,7 @@
       <x>1010</x>
       <y>0</y>
       <width>781</width>
-      <height>591</height>
+      <height>341</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -324,10 +324,10 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>1440</x>
-      <y>860</y>
+      <x>1390</x>
+      <y>600</y>
       <width>261</width>
-      <height>131</height>
+      <height>251</height>
      </rect>
     </property>
     <property name="title">
@@ -337,9 +337,9 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>20</y>
+       <y>30</y>
        <width>231</width>
-       <height>101</height>
+       <height>188</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
@@ -350,7 +350,67 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="cbSrrdDetObj">
+        <property name="text">
+         <string>SRR DetObjs</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbUsrrDetObj">
+        <property name="text">
+         <string>USRR DetObjs</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbCluster">
+        <property name="text">
+         <string>Clusters</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbTrackers">
+        <property name="text">
+         <string>Trackers</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cbParkingAssisBins">
+        <property name="text">
+         <string>Parking Asstist Bins</string>
+        </property>
+       </widget>
+      </item>
      </layout>
+    </widget>
+    <widget class="QCheckBox" name="cbNearView_4">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>80</y>
+       <width>229</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Near View</string>
+     </property>
     </widget>
    </widget>
   </widget>
@@ -359,8 +419,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1920</width>
-     <height>26</height>
+     <width>1890</width>
+     <height>34</height>
     </rect>
    </property>
   </widget>

@@ -36,7 +36,10 @@ public:
     void tryFindSerialPort();
     void displaySubframeParams();
     void dispPacketDetail(SrrPacket *);
+    void dispSpeed(vector<Tracker_t> &trackers);
+
     bool sensorStart();
+
     void testPlot();
 
 signals:
@@ -45,14 +48,23 @@ signals:
 public slots:
     void onFrameChanged(SrrPacket *);
 
+private slots:
     void showAboutMessage();
-
     void onActionConnect();
     void onActionDisconnect();
     void onActionSettings();
 
-private slots:
     void on_cbNearView_toggled(bool checked);
+
+    void on_cbSrrdDetObj_toggled(bool checked);
+
+    void on_cbUsrrDetObj_toggled(bool checked);
+
+    void on_cbCluster_toggled(bool checked);
+
+    void on_cbTrackers_toggled(bool checked);
+
+    void on_cbParkingAssisBins_toggled(bool checked);
 
 private:
     Ui::MainWindow *ui;

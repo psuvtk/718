@@ -12,35 +12,95 @@ void PlotWorker::drawBackground()
     endReplot();
 }
 
-void PlotWorker::drawDetObj(const QVector<double> &x, const QVector<double> &y, QPen pen)
+void PlotWorker::drawSrrDetObj(vector<DetObj_t> &objs)
 {
+    if (!_enableSrrDetObj) return;
+    if (objs.size() == 0) return;
+
+    QVector<double> x, y;
+    for (auto obj: objs) {
+        x << obj.x;
+        y << obj.y;
+    }
+
     _handler->addGraph();
-    qDebug() << "Graph Count: "<< _handler->graphCount();
-
-    _handler->graph(0)->setPen(pen);
-    _handler->graph(0)->setLineStyle(QCPGraph::lsNone);
-    _handler->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 7.5));
-    _handler->graph(0)->setData(x, y);
+    int numGraphs = _handler->graphCount();
+    _handler->graph(numGraphs-1)->setPen(QPen(Qt::darkYellow, 3));
+    _handler->graph(numGraphs-1)->setLineStyle(QCPGraph::lsNone);
+    _handler->graph(numGraphs-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 7.5));
+    _handler->graph(numGraphs-1)->setData(x, y);
 }
 
-void PlotWorker::drawCluster(double xCenter, double yCenter, double xSize, double ySize, QPen pen)
+void PlotWorker::drawUsrrDetObjs(vector<DetObj_t> &objs)
 {
-    QCPItemRect *rect= new QCPItemRect(_handler);
-    rect->setPen(pen);
-    rect->topLeft->setCoords(xCenter-xSize, yCenter+ySize);
-    rect->bottomRight->setCoords(xCenter+xSize, yCenter-ySize);
+    if (!_enableUsrrDetObj) return;
+    if (objs.size() == 0) return;
+
+    QVector<double> x, y;
+    for (auto obj: objs) {
+        x << obj.x;
+        y << obj.y;
+    }
+
+    _handler->addGraph();
+    int numGraphs = _handler->graphCount();
+    _handler->graph(numGraphs-1)->setPen(QPen(Qt::darkCyan, 3));
+    _handler->graph(numGraphs-1)->setLineStyle(QCPGraph::lsNone);
+    _handler->graph(numGraphs-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 7.5));
+    _handler->graph(numGraphs-1)->setData(x, y);
 }
 
-void PlotWorker::drawTracker(const QVector<double> &x, const QVector<double> &y, QPen pen)
+void PlotWorker::drawClusters(vector<Cluster_t> &clusters)
 {
+    if (!_enableClusters) return;
+    if (clusters.size() == 0) return;
+
+    for (auto cluster: clusters) {
+        QCPItemRect *rect= new QCPItemRect(_handler);
+        rect->setPen(QPen(Qt::cyan , 3));
+        rect->topLeft->setCoords(cluster.xCenter-cluster.xSize,
+                                 cluster.yCenter+cluster.ySize);
+        rect->bottomRight->setCoords(cluster.xCenter+cluster.xSize,
+                                     cluster.yCenter-cluster.ySize);
+    }
+}
+
+void PlotWorker::drawTrackers(vector<Tracker_t> &trackers)
+{
+    if (!_enableTracker) return;
+    if (trackers.size() == 0) return;
+
+    QVector<double> x, y;
+    for (auto tracker: trackers) {
+        x << tracker.x;
+        y << tracker.y;
+
+    }
     _handler->addGraph();
     int numGraph = _handler->graphCount();
-    _handler->graph(numGraph-1)->setPen(pen);
+    _handler->graph(numGraph-1)->setPen(QPen(Qt::green, 2));
     _handler->graph(numGraph-1)->setLineStyle(QCPGraph::lsNone);
     _handler->graph(numGraph-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDiamond, 20));
     _handler->graph(numGraph-1)->setData(x, y);
+
+    for (auto tracker: trackers) {
+    QCPItemRect *rect= new QCPItemRect(_handler);
+        rect->setPen(QPen(Qt::green, 2));
+        rect->topLeft->setCoords(tracker.x - tracker.xSize,
+                                 tracker.y + tracker.ySize);
+        rect->bottomRight->setCoords(tracker.x + tracker.xSize,
+                                     tracker.y - tracker.ySize);
+    }
 }
 
+void PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)
+{
+    if (!_enableParkingAssitBins) return;
+    if (objs.size() == 0) return;
+
+    // Not implement;
+    qDebug() << "NOT ImpleMent PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)";
+}
 
 void PlotWorker::beginReplot()
 {
@@ -102,6 +162,31 @@ void PlotWorker::__drawBackground()
         item->startDir->setCoords(sx - a*sy,  sy + a*sx);
         item->endDir->setCoords(ex + a*ey,  ey - a*ex);
     }
+}
+
+void PlotWorker::setEnableParkingAssitBins(bool enableParkingAssitBins)
+{
+    _enableParkingAssitBins = enableParkingAssitBins;
+}
+
+void PlotWorker::setEnableTracker(bool enableTracker)
+{
+    _enableTracker = enableTracker;
+}
+
+void PlotWorker::setEnableClusters(bool enableClusters)
+{
+    _enableClusters = enableClusters;
+}
+
+void PlotWorker::setEnableUsrrDetObj(bool enableUsrrDetObj)
+{
+    _enableUsrrDetObj = enableUsrrDetObj;
+}
+
+void PlotWorker::setEnableSrrDetObj(bool enableSrrDetObj)
+{
+    _enableSrrDetObj = enableSrrDetObj;
 }
 
 void PlotWorker::setEnableNearView(bool value)
