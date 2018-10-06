@@ -13,6 +13,10 @@ void CommThread::run() {
     qint64 skipLength = 0;
     qint32 nErr = 0;
 
+    quint32 cur =0, last=0;
+    quint64 totalCycle =0;
+    quint64 cnt = 0;
+
     while (true) {
         if (!_device->isOpen()) {
             msleep(100);
@@ -47,11 +51,36 @@ labelRecover:
             }
 
             // 处理完整一帧
+
             SrrPacket packet(bufFrame.data());
-            if (packet.isValid()) {
-                emit frameChanged(&packet);
-                waitForDispDone();
+            if (last == 0 ) {
+                last = packet.getTimeCpuCycles();
+                continue;
             }
+
+            int fs = 5;
+
+            if (packet.isValid()) {
+                if (packet.getFrameNumber()%(2*fs) < 2) {
+                    emit frameChanged(&packet);
+                    waitForDispDone();
+
+                    cur = packet.getTimeCpuCycles();
+                    cnt++;
+                    totalCycle += (cur - last);
+                    last = cur;
+                    double time = double(totalCycle)/cnt/516.0*0.86/1000;
+                    qDebug() << "-------------------";
+                    qDebug() << "Frame Number: " << packet.getFrameNumber();
+                    qDebug() << "Average CPU Cycle: " << totalCycle/cnt;
+                    qDebug() << "Average Frame Time(ms): " << time;
+                    qDebug() << "Average Frame Rate: " << 1/time * 1000;
+                } else {
+                    skipLength = bufRecv.indexOf(SYNC, 8);
+                    bufRecv.remove(0, skipLength);
+                }
+            }
+
         }
     }
 }
@@ -60,7 +89,6 @@ void CommThread::waitForDispDone() {
     _isDispDone = false;
     while (!_isDispDone)
         ;
-    msleep(15);
 }
 
 void CommThread::onDispDone() {

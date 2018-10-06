@@ -6,7 +6,7 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
     _pHeader = reinterpret_cast<const struct __header_t*>(pSrrPacket);
 
     const char *tl = pSrrPacket + HEAD_STRUCT_SIZE_BYTES;
-    query();
+//    query();
 
     for (uint32_t i = 0; i < getNumTLVs(); i++) {
         uint32_t type = getTlvType(tl);

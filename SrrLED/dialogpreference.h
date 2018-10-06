@@ -25,6 +25,11 @@ private slots:
 
     void on_cbConfig_currentIndexChanged(int index);
 
+    void on_doubleSpinBox_valueChanged(double arg1);
+
+
+    void on_comboBox_activated(int index);
+
 private:
     void fillComboBoxes();
 

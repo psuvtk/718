@@ -17,7 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::dispDone, _commThread, &CommThread::onDispDone);
 
     // 初始化 绘制线程
-    _plotWorker = new PlotWorker(ui->customPlot);
+    _plotWorker = new PlotWorker(ui->canvasRange, ui->canvasDoppler);
     _plotWorker->drawBackground();
 
     // 初始化 串口
@@ -35,10 +35,11 @@ MainWindow::MainWindow(QWidget *parent) :
     // GUI 设置
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-//    auto dw = QApplication::desktop()->width();
 //    auto dh = QApplication::desktop()->height();
 //    setGeometry(0, 0, dw, dh);
 //    qDebug() << dw << " " << dh;
+
+    ui->labelExceedSpeed->setStyleSheet("color:green;");
 
     ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -324,10 +325,6 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
     QString numDetObjs = QString::number(pSrrPacket->getNumDetectedObj());
     QString numTLVs = QString::number(pSrrPacket->getNumTLVs());
     QString subframeNumber = QString::number(pSrrPacket->getSubframeNumber());
-    QString detObjs = QString::number(pSrrPacket->getDetObjs().size());
-    QString clusters = QString::number(pSrrPacket->getClusters().size());
-    QString trackers = QString::number(pSrrPacket->getTackers().size());
-    QString parkingAssitBins = QString::number(pSrrPacket->getParkingAssistBins().size());
 
     tw->setItem(0, 0, new QTableWidgetItem("0x0102 0x0304 0x0506 0x0708"));
     tw->setItem(0, 1, new QTableWidgetItem(version));
@@ -338,11 +335,6 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
     tw->setItem(0, 6, new QTableWidgetItem(numDetObjs));
     tw->setItem(0, 7, new QTableWidgetItem(numTLVs));
     tw->setItem(0, 8, new QTableWidgetItem(subframeNumber));
-    tw->setItem(0, 9, new QTableWidgetItem(""));
-    tw->setItem(0, 10, new QTableWidgetItem(detObjs));
-    tw->setItem(0, 11, new QTableWidgetItem(clusters));
-    tw->setItem(0, 12, new QTableWidgetItem(trackers));
-    tw->setItem(0, 13, new QTableWidgetItem(parkingAssitBins));
 }
 
 void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
@@ -350,15 +342,28 @@ void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
     qSort(trackers.begin(), trackers.end(), [](const Tracker_t a, const Tracker_t b){
         return (a.x * a.x + a.y * a.y) < (b.x * b.x + b.y * b.y);
     });
-
+    double speed;
     for (auto t: trackers) {
-        if (t.vy > 0) {
-            double speed = t.vx * t.vx + t.vy * t.vy;
+        if (t.vy < 0) {
+            // m/s -> km/h
+            speed = (t.vx * t.vx + t.vy * t.vy) * 3.6;
             ui->lcdNumber->display(QString::number(speed));
+
+            if (speed > _settings->getSpeedThreshold()) {
+                ui->labelExceedSpeed->setStyleSheet("color:red;");
+                ui->labelExceedSpeed->setText("Exceed");
+            } else {
+                ui->labelExceedSpeed->setStyleSheet("color:green;");
+                ui->labelExceedSpeed->setText("Normal");
+            }
+
+            qDebug() << "speed: " <<  speed;
             return;
         }
     }
-    ui->lcdNumber->display("0");
+//    ui->lcdNumber->display("0");
+    ui->labelExceedSpeed->setStyleSheet("color:green;");
+    ui->labelExceedSpeed->setText("Normal");
 }
 
 void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
@@ -366,16 +371,14 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     dispSpeed(pSrrPacket->getTackers());
 
     _plotWorker->beginReplot();
-    if (pSrrPacket->getSubframeNumber() == 0) { // SRR
-        _plotWorker->drawSrrDetObj(pSrrPacket->getDetObjs());
-    } else { // USRR
-        _plotWorker->drawUsrrDetObjs(pSrrPacket->getDetObjs());
-    }
+    _plotWorker->drawDetObj(pSrrPacket->getDetObjs(), pSrrPacket->getSubframeNumber());
     _plotWorker->drawClusters(pSrrPacket->getClusters());
     _plotWorker->drawTrackers(pSrrPacket->getTackers());
     _plotWorker->drawParkingAssitBins(pSrrPacket->getParkingAssistBins());
     _plotWorker->endReplot();
 
+//    QThread::msleep(long(1000/_settings->getFrameRate()));
+//    QThread::msleep(3);
     emit dispDone();
 }
 

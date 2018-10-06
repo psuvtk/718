@@ -1,8 +1,6 @@
 #include "dialogpreference.h"
 #include "ui_dialogpreference.h"
 
-
-
 DialogPreference::DialogPreference(Settings *settings, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::DialogPreference),
@@ -86,4 +84,14 @@ void DialogPreference::on_cbConfig_currentIndexChanged(int index)
 {
     if (index == 0) ui->leConfigPath->setEnabled(false);
     else ui->leConfigPath->setEnabled(true);
+}
+
+void DialogPreference::on_doubleSpinBox_valueChanged(double arg1)
+{
+    _settings->setSpeedThreshold(arg1);
+}
+
+void DialogPreference::on_comboBox_activated(int index)
+{
+    _settings->setFrameRate(index+1);
 }

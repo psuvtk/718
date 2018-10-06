@@ -83,3 +83,23 @@ void Settings::writeLocalSettings() {
 //    settings.setValue("baudRateData", _baudRateData);
     settings.endGroup();
 }
+
+double Settings::getSpeedThreshold() const
+{
+    return _speedThreshold;
+}
+
+void Settings::setSpeedThreshold(double speedThreadold)
+{
+    _speedThreshold = speedThreadold;
+}
+
+int Settings::getFrameRate() const
+{
+    return _frameRate;
+}
+
+void Settings::setFrameRate(int frameRate)
+{
+    _frameRate = frameRate;
+}

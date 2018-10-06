@@ -9,11 +9,10 @@ class PlotWorker
 {
 public:
     PlotWorker() = delete;
-    explicit PlotWorker(QCustomPlot *handler);
+    explicit PlotWorker(QCustomPlot *canvasRange, QCustomPlot *canvasDoppler);
 
     void drawBackground();
-    void drawSrrDetObj(vector<DetObj_t> &objs);
-    void drawUsrrDetObjs(vector<DetObj_t> &objs);
+    void drawDetObj(vector<DetObj_t> &objs, int subframeNum);
     void drawClusters(vector<Cluster_t> &clusters);
     void drawTrackers(vector<Tracker_t> &trackers);
     void drawParkingAssitBins(vector<ParkingAssistBin_t> &objs);
@@ -33,16 +32,26 @@ public:
 
     void setEnableParkingAssitBins(bool enableParkingAssitBins);
 
+    void setOverN(int overN);
+
 private:
     void __drawBackground();
 
-    QCustomPlot *_handler = nullptr;
+    QCustomPlot *_canvasRange = nullptr;
+    QCustomPlot *_canvasDoppler = nullptr;
     bool _enableNearView = false;
     bool _enableSrrDetObj = true;
     bool _enableUsrrDetObj = true;
     bool _enableClusters = true;
     bool _enableTracker = true;
     bool _enableParkingAssitBins = false;
+
+    QVector<double> _xSrr, _ySrr;
+    QVector<double> _rangeSrr, _dopplerSrr;
+    QVector<double> _xUsrr, _yUsrr;
+    QVector<double> _rangeUsrr, _dopplerUsrr;
+
+    int _overN; // framerate = 33/n
 };
 
 #endif // PLOTWORKER_H

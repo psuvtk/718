@@ -34,6 +34,12 @@ public:
     void readLocalSettings();
     void writeLocalSettings();
 
+    double getSpeedThreshold() const;
+    void setSpeedThreshold(double speedThreadold);
+
+    int getFrameRate() const;
+    void setFrameRate(int frameRate);
+
 private:
     QString _portNameData;
     qint32 _baudRateData;
@@ -42,6 +48,9 @@ private:
     qint32 _baudRateUart;
 
     QString _configFilePath;
+
+    double _speedThreshold;
+    int _frameRate;
 };
 
 #endif // SETTINGS_H
