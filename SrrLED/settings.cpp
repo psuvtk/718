@@ -65,23 +65,23 @@ void Settings::printInfo() {
 void Settings::readLocalSettings() {
     qDebug() << "Settings::readLocalSettings()";
     QSettings settings(this->parent());
-    settings.beginGroup("serialport");
-//    _portNameUart = settings.value("portNameUart").toString();
-//    _baudRateUart = static_cast<qint32>(settings.value("baudRateUart").toInt());
-//    _portNameData = settings.value("portNameData").toString();
-//    _baudRateData = static_cast<qint32>(settings.value("baudRateData").toInt());
-    settings.endGroup();
+    if (settings.contains("frameRate")) {
+        _frameRate = settings.value("frameRate").toInt();
+    } else {
+        _frameRate = 1;
+    }
+    if (settings.contains("speedThreshold")) {
+        _speedThreshold = settings.value("speedThreshold").toDouble();
+    } else {
+        _speedThreshold = 18.0;
+    }
 }
 
 void Settings::writeLocalSettings() {
     qDebug() << "Settings::writeLocalSettings()";
     QSettings settings(this->parent());
-    settings.beginGroup("serialport");
-//    settings.setValue("portNameUart", _portNameUart);
-//    settings.setValue("baudRateUart", _baudRateUart);
-//    settings.setValue("portNameData", _portNameData);
-//    settings.setValue("baudRateData", _baudRateData);
-    settings.endGroup();
+    settings.setValue("frameRate", _frameRate);
+    settings.setValue("speedThreshold", _speedThreshold);
 }
 
 double Settings::getSpeedThreshold() const

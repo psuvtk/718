@@ -32,6 +32,9 @@ void DialogPreference::on_pbSave_clicked()
         _settings->setConfigFilePath(ui->leConfigPath->text());
     }
 
+    _settings->setSpeedThreshold(ui->dsbSpeedThreshold->value());
+    _settings->setFrameRate(ui->cbFrameRate->currentIndex() + 1);
+
     this->accept();
 }
 
@@ -66,7 +69,6 @@ void DialogPreference::fillComboBoxes() {
         break;
     }
 
-
     if (_settings->getConfigFilePath() == "") {
         ui->cbConfig->setCurrentIndex(0);
         ui->leConfigPath->clear();
@@ -76,6 +78,9 @@ void DialogPreference::fillComboBoxes() {
         ui->leConfigPath->setText(_settings->getConfigFilePath());
         ui->leConfigPath->setClearButtonEnabled(true);
     }
+
+    ui->cbFrameRate->setCurrentIndex(_settings->getFrameRate()-1);
+    ui->dsbSpeedThreshold->setValue(_settings->getSpeedThreshold());
 }
 
 
@@ -84,14 +89,4 @@ void DialogPreference::on_cbConfig_currentIndexChanged(int index)
 {
     if (index == 0) ui->leConfigPath->setEnabled(false);
     else ui->leConfigPath->setEnabled(true);
-}
-
-void DialogPreference::on_doubleSpinBox_valueChanged(double arg1)
-{
-    _settings->setSpeedThreshold(arg1);
-}
-
-void DialogPreference::on_comboBox_activated(int index)
-{
-    _settings->setFrameRate(index+1);
 }

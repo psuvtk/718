@@ -13,8 +13,8 @@ void CommThread::run() {
     qint64 skipLength = 0;
     qint32 nErr = 0;
 
-    quint32 cur =0, last=0;
-    quint64 totalCycle =0;
+    quint32 cur=0, last=0;
+    quint64 totalCycle = 0;
     quint64 cnt = 0;
 
     while (true) {
@@ -51,20 +51,18 @@ labelRecover:
             }
 
             // 处理完整一帧
-
             SrrPacket packet(bufFrame.data());
             if (last == 0 ) {
                 last = packet.getTimeCpuCycles();
                 continue;
             }
 
-            int fs = 5;
-
             if (packet.isValid()) {
-                if (packet.getFrameNumber()%(2*fs) < 2) {
+                if (packet.getFrameNumber()%(2*_overN) < 2) {
                     emit frameChanged(&packet);
                     waitForDispDone();
 
+                    // 计算帧率
                     cur = packet.getTimeCpuCycles();
                     cnt++;
                     totalCycle += (cur - last);
@@ -74,13 +72,12 @@ labelRecover:
                     qDebug() << "Frame Number: " << packet.getFrameNumber();
                     qDebug() << "Average CPU Cycle: " << totalCycle/cnt;
                     qDebug() << "Average Frame Time(ms): " << time;
-                    qDebug() << "Average Frame Rate: " << 1/time * 1000;
+                    qDebug() << "Average Frame Rate: " << 1 / time * 1000;
                 } else {
                     skipLength = bufRecv.indexOf(SYNC, 8);
                     bufRecv.remove(0, skipLength);
                 }
             }
-
         }
     }
 }
@@ -93,4 +90,9 @@ void CommThread::waitForDispDone() {
 
 void CommThread::onDispDone() {
     _isDispDone = true;
+}
+
+void CommThread::setOverN(int overN)
+{
+    _overN = overN;
 }

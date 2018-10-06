@@ -26,18 +26,32 @@ MainWindow::MainWindow(QWidget *parent) :
     _deviceState = CLOSE;
     _commThread->setHandle(_portData);
     _commThread->start();
+    _commThread->setOverN(_settings->getFrameRate());
 
     tryFindSerialPort();
     displaySubframeParams();
 
-
-
     // GUI 设置
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-//    auto dh = QApplication::desktop()->height();
-//    setGeometry(0, 0, dw, dh);
-//    qDebug() << dw << " " << dh;
+    auto dh = QApplication::desktop()->height() - menuBar()->height()
+                                                - statusBar()->height();
+    auto dw = QApplication::desktop()->width();
+
+    showFullScreen();
+    ui->tabWidget->setGeometry(0, 0, dw, dh);
+
+    ui->canvasRange->setGeometry(10, 10, dh-60, dh-60);
+    ui->canvasDoppler->setGeometry(dh-30, 10, dw-dh+10, dh/2-20);
+
+    ui->gbSpeed->setGeometry(dh-30,
+                             dh*5/8,
+                             (dw-dh+20)*3/5-10,
+                             dh/4);
+    ui->gbDisplay->setGeometry((dw-dh+20)*3/5+dh-30,
+                               dh*5/8,
+                               (dw-dh+20)*2/5-10,
+                               dh/4);
 
     ui->labelExceedSpeed->setStyleSheet("color:green;");
 
@@ -77,9 +91,6 @@ MainWindow::MainWindow(QWidget *parent) :
                                  this);
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
-
-
-//    testPlot();
 }
 
 MainWindow::~MainWindow()
@@ -100,9 +111,6 @@ MainWindow::~MainWindow()
 void MainWindow::showAboutMessage() {
    qDebug() << "MainWindow::showAboutMessage()";
 }
-
-
-
 
 void MainWindow::tryFindSerialPort() {
 #ifdef Q_OS_LINUX
@@ -203,6 +211,7 @@ void MainWindow::onActionSettings() {
     DialogPreference dlg(_settings, this);
     if (dlg.exec()) {
         _settings->printInfo();
+        _commThread->setOverN(_settings->getFrameRate());
     }
 }
 
@@ -274,24 +283,7 @@ retry:
     return true;
 }
 
-void MainWindow::testPlot()
-{
-    _plotWorker->beginReplot();
-
-
-
-
-    // Cluster 框
-    vector<Cluster_t> clusters{Cluster_t{ 8, 14,1.5,1.5}};
-//    clusters << Cluster_t{ 8, 14,1.5,1.5};
-    _plotWorker->drawClusters(clusters);
-
-    _plotWorker->endReplot();
-}
-
-
 void MainWindow::displaySubframeParams() {
-    qDebug() << "Not impl displaySubframeParams";
     ui->twParamSubframe1->setColumnWidth(0, 190);
     ui->twParamSubframe2->setColumnWidth(0, 190);
     ui->twParamSubframe1->setItem(0, 0, new QTableWidgetItem("76"));
@@ -305,7 +297,6 @@ void MainWindow::displaySubframeParams() {
     ui->twParamSubframe2->setItem(0, 2, new QTableWidgetItem("0.434"));
     ui->twParamSubframe2->setItem(0, 3, new QTableWidgetItem("0.3229"));
     ui->twParamSubframe2->setItem(0, 4, new QTableWidgetItem("2"));
-
 }
 
 void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
@@ -317,7 +308,7 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
         tw = ui->twPacketSubframe2;
     }
 
-    QString version = QString("0x%1").arg(pSrrPacket->getVersion(),8, 16,QChar('0'));
+    QString version = QString("0x%1").arg(pSrrPacket->getVersion(), 8, 16, QChar('0'));
     QString platform = QString("0x%1").arg(pSrrPacket->getPlatform(), 8, 16, QChar('0'));
     QString totalPacketLen = QString::number(pSrrPacket->getTotalPacketLen());
     QString frameNumber = QString::number(pSrrPacket->getFrameNumber());
@@ -339,15 +330,16 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
 
 void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
 {
-    qSort(trackers.begin(), trackers.end(), [](const Tracker_t a, const Tracker_t b){
-        return (a.x * a.x + a.y * a.y) < (b.x * b.x + b.y * b.y);
-    });
-    double speed;
+    auto lessThan = [](const Tracker_t a, const Tracker_t b){
+        return a.range < b.range;
+    };
+    qSort(trackers.begin(), trackers.end(), lessThan);
+
     for (auto t: trackers) {
         if (t.vy < 0) {
             // m/s -> km/h
-            speed = (t.vx * t.vx + t.vy * t.vy) * 3.6;
-            ui->lcdNumber->display(QString::number(speed));
+            double speed = (t.vx * t.vx + t.vy * t.vy) * 3.6;
+            ui->lcdNumber->display(QString::number(speed, 'g', 3));
 
             if (speed > _settings->getSpeedThreshold()) {
                 ui->labelExceedSpeed->setStyleSheet("color:red;");
@@ -357,11 +349,10 @@ void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
                 ui->labelExceedSpeed->setText("Normal");
             }
 
-            qDebug() << "speed: " <<  speed;
             return;
         }
     }
-//    ui->lcdNumber->display("0");
+
     ui->labelExceedSpeed->setStyleSheet("color:green;");
     ui->labelExceedSpeed->setText("Normal");
 }
@@ -377,8 +368,6 @@ void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     _plotWorker->drawParkingAssitBins(pSrrPacket->getParkingAssistBins());
     _plotWorker->endReplot();
 
-//    QThread::msleep(long(1000/_settings->getFrameRate()));
-//    QThread::msleep(3);
     emit dispDone();
 }
 

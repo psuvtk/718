@@ -37,10 +37,8 @@ public:
     void displaySubframeParams();
     void dispPacketDetail(SrrPacket *);
     void dispSpeed(vector<Tracker_t> &trackers);
-
     bool sensorStart();
 
-    void testPlot();
 
 signals:
     void dispDone();

@@ -16,6 +16,7 @@ public:
     void drawClusters(vector<Cluster_t> &clusters);
     void drawTrackers(vector<Tracker_t> &trackers);
     void drawParkingAssitBins(vector<ParkingAssistBin_t> &objs);
+    void drawTarget(Tracker_t);
 
     void beginReplot();
     void endReplot();
@@ -31,8 +32,6 @@ public:
     void setEnableTracker(bool enableTracker);
 
     void setEnableParkingAssitBins(bool enableParkingAssitBins);
-
-    void setOverN(int overN);
 
 private:
     void __drawBackground();
@@ -50,8 +49,6 @@ private:
     QVector<double> _rangeSrr, _dopplerSrr;
     QVector<double> _xUsrr, _yUsrr;
     QVector<double> _rangeUsrr, _dopplerUsrr;
-
-    int _overN; // framerate = 33/n
 };
 
 #endif // PLOTWORKER_H

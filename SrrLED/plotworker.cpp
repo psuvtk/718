@@ -143,6 +143,24 @@ void PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)
     qDebug() << "NOT ImpleMent PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)";
 }
 
+void PlotWorker::drawTarget(Tracker_t t)
+{
+    int numGraph;
+    _canvasRange->addGraph();
+    numGraph = _canvasRange->graphCount();
+    _canvasRange->graph(numGraph-1)->setPen(QPen(Qt::red, 2));
+    _canvasRange->graph(numGraph-1)->setLineStyle(QCPGraph::lsNone);
+    _canvasRange->graph(numGraph-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssTriangle, 30));
+    _canvasRange->graph(numGraph-1)->setData(QVector<double>{t.x}, QVector<double>{t.y});
+
+    _canvasDoppler->addGraph();
+    numGraph = _canvasDoppler->graphCount();
+    _canvasDoppler->graph(numGraph-1)->setPen(QPen(Qt::red, 2));
+    _canvasDoppler->graph(numGraph-1)->setLineStyle(QCPGraph::lsNone);
+    _canvasDoppler->graph(numGraph-1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssTriangle, 30));
+    _canvasDoppler->graph(numGraph-1)->setData(QVector<double>{t.range}, QVector<double>{t.doppler});
+}
+
 void PlotWorker::beginReplot()
 {
     if (_canvasRange->graphCount() != 0) _canvasRange->clearGraphs();
@@ -197,6 +215,10 @@ void PlotWorker::endReplot()
     _canvasDoppler->xAxis->setLabelColor(Qt::darkGray);
     _canvasDoppler->yAxis->setLabelColor(Qt::darkGray);
 
+//    _canvasRange->legend->setVisible(true);
+//    _canvasRange->legend->setFont(QFont("Helvetica", 9));
+//    _canvasRange->legend->setRowSpacing(3);
+
     _canvasRange->replot();
     _canvasDoppler->replot();
 }
@@ -218,6 +240,7 @@ void PlotWorker::__drawBackground()
         QCPItemCurve *item = new QCPItemCurve(_canvasRange);
         item->setPen(QPen(Qt::darkGray));
 
+        // 三次贝塞尔曲线拟合圆弧
         double a = 4.0/3*std::tan(PI*30.0/180);
         double sx = r*cos(PI*30/180.0);
         double sy = r*sin(PI*30/180.0);
@@ -229,11 +252,6 @@ void PlotWorker::__drawBackground()
         item->startDir->setCoords(sx - a*sy,  sy + a*sx);
         item->endDir->setCoords(ex + a*ey,  ey - a*ex);
     }
-}
-
-void PlotWorker::setOverN(int overN)
-{
-    _overN = overN;
 }
 
 void PlotWorker::setEnableParkingAssitBins(bool enableParkingAssitBins)

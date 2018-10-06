@@ -30,24 +30,11 @@
      <attribute name="title">
       <string>Tab 1</string>
      </attribute>
-     <widget class="QCustomPlot" name="canvasRange" native="true">
+     <widget class="QGroupBox" name="gbDisplay">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>10</y>
-        <width>991</width>
-        <height>901</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(115, 255, 166);</string>
-      </property>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_2">
-      <property name="geometry">
-       <rect>
-        <x>1570</x>
-        <y>560</y>
+        <x>1080</x>
+        <y>340</y>
         <width>241</width>
         <height>271</height>
        </rect>
@@ -121,25 +108,12 @@
         </item>
        </layout>
       </widget>
-      <widget class="QCheckBox" name="cbNearView_4">
-       <property name="geometry">
-        <rect>
-         <x>260</x>
-         <y>80</y>
-         <width>229</width>
-         <height>26</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Near View</string>
-       </property>
-      </widget>
      </widget>
-     <widget class="QGroupBox" name="groupBox_5">
+     <widget class="QGroupBox" name="gbSpeed">
       <property name="geometry">
        <rect>
-        <x>1020</x>
-        <y>560</y>
+        <x>520</x>
+        <y>340</y>
         <width>551</width>
         <height>271</height>
        </rect>
@@ -186,14 +160,27 @@
      <widget class="QCustomPlot" name="canvasDoppler" native="true">
       <property name="geometry">
        <rect>
-        <x>1020</x>
+        <x>520</x>
         <y>10</y>
-        <width>800</width>
-        <height>400</height>
+        <width>801</width>
+        <height>311</height>
        </rect>
       </property>
       <property name="styleSheet">
        <string notr="true">background-color: rgb(255, 108, 35);</string>
+      </property>
+     </widget>
+     <widget class="QCustomPlot" name="canvasRange" native="true">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>491</width>
+        <height>601</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(115, 255, 166);</string>
       </property>
      </widget>
     </widget>
@@ -450,7 +437,7 @@
      <x>0</x>
      <y>0</y>
      <width>1866</width>
-     <height>26</height>
+     <height>34</height>
     </rect>
    </property>
   </widget>

@@ -20,6 +20,8 @@ public:
 
     void waitForDispDone();
 
+    void setOverN(int overN);
+
 public slots:
     void onDispDone();
 
@@ -29,6 +31,7 @@ signals:
 private:
     QSerialPort *_device = nullptr;
     bool _isDispDone = false;
+    int _overN = 1;
 };
 
 #endif // UARTTHREAD_H
