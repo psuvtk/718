@@ -13,7 +13,7 @@ void PlotWorker::drawBackground()
     endReplot();
 }
 
-void PlotWorker::drawDetObj(vector<DetObj_t> &objs, int subframeNum)
+void PlotWorker::drawDetObj(vector<DetObj_t> &objs, quint32 subframeNum)
 {
     if (objs.size() == 0) return;
 
@@ -137,13 +137,28 @@ void PlotWorker::drawTrackers(vector<Tracker_t> &trackers)
 void PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)
 {
     if (!_enableParkingAssitBins) return;
-    if (objs.size() == 0) return;
+    if (objs.size() != 0) {
+        _parkingAssitBins.clear();
+        for (auto obj: objs) {
+            _parkingAssitBins << obj;
+        }
+    }
 
-    // Not implement;
-    qDebug() << "NOT ImpleMent PlotWorker::drawParkingAssitBins(vector<ParkingAssistBin_t> &objs)";
+    for (int i=0; i < _parkingAssitBins.size(); i++) {
+        QCPItemLine *item = new QCPItemLine(_canvasRange);
+        item->setPen(QPen(Qt::magenta , 3));
+        item->start->setCoords(_parkingAssitBins[i].x1, _parkingAssitBins[i].y1);
+        item->end->setCoords(_parkingAssitBins[i].x2, _parkingAssitBins[i].y2);
+    }
+    for (int i=0; i < _parkingAssitBins.size()-1; i++) {
+        QCPItemLine *item = new QCPItemLine(_canvasRange);
+        item->setPen(QPen(Qt::magenta , 3));
+        item->start->setCoords(_parkingAssitBins[i+1].x1, _parkingAssitBins[i+1].y1);
+        item->end->setCoords(_parkingAssitBins[i].x2, _parkingAssitBins[i].y2);
+    }
 }
 
-void PlotWorker::drawTarget(Tracker_t t)
+void PlotWorker::drawTarget(const Tracker_t &t)
 {
     int numGraph;
     _canvasRange->addGraph();
@@ -167,6 +182,7 @@ void PlotWorker::beginReplot()
     if (_canvasRange->itemCount() != 0) _canvasRange->clearItems();
     if (_canvasDoppler->graphCount() != 0) _canvasDoppler->clearGraphs();
     if (_canvasDoppler->itemCount() != 0) _canvasDoppler->clearItems();
+
     __drawBackground();
 }
 

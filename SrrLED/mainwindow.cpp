@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+extern bool isDispDone;
+extern QMutex mutexDispDone;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -10,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setOrganizationName("718");
     QCoreApplication::setApplicationName("SrrLED");
 
+    initGui();
     _settings = new Settings(this);
     // 初始化 通信线程
     _commThread = new CommThread;
@@ -23,74 +27,20 @@ MainWindow::MainWindow(QWidget *parent) :
     // 初始化 串口
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
-    _deviceState = CLOSE;
+
     _commThread->setHandle(_portData);
     _commThread->start();
     _commThread->setOverN(_settings->getFrameRate());
 
+    _mutex = new QMutex;
+
     tryFindSerialPort();
     displaySubframeParams();
 
-    // GUI 设置
-    menuBar()->hide();
-    setWindowTitle(tr("SrrLED"));
-    auto dh = QApplication::desktop()->height() - menuBar()->height()
-                                                - statusBar()->height();
-    auto dw = QApplication::desktop()->width();
-
-    showFullScreen();
-    ui->tabWidget->setGeometry(0, 0, dw, dh);
-
-    ui->canvasRange->setGeometry(10, 10, dh-60, dh-60);
-    ui->canvasDoppler->setGeometry(dh-30, 10, dw-dh+10, dh/2-20);
-
-    ui->gbSpeed->setGeometry(dh-30,
-                             dh*5/8,
-                             (dw-dh+20)*3/5-10,
-                             dh/4);
-    ui->gbDisplay->setGeometry((dw-dh+20)*3/5+dh-30,
-                               dh*5/8,
-                               (dw-dh+20)*2/5-10,
-                               dh/4);
-
-    ui->labelExceedSpeed->setStyleSheet("color:green;");
-
-    ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twParamSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twParamSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twPacketSubframe1->setColumnWidth(0, 280);
-    ui->twPacketSubframe2->setColumnWidth(0, 280);
-    ui->twParamSubframe1->setColumnWidth(0, 245);
-    ui->twParamSubframe2->setColumnWidth(0, 245);
-    // 打开配置文件
-    //    QAction *actionOpenConfig = new QAction(QIcon(":/icons/folder.svg"),
-    //                                            tr("Open Config File"),
-    //                                            this);
-    //    ui->mainToolBar->addAction(actionOpenConfig);
-    //    connect(actionOpenConfig, &QAction::triggered, this, &MainWindow::onActionOpenConfig);
-    //    ui->mainToolBar->addSeparator();
-
-    actionConnect = new QAction(QIcon(":/icons/connect.svg"),
-                                    tr("connect"),
-                                    this);
-    ui->mainToolBar->addAction(actionConnect);
-    connect(actionConnect, &QAction::triggered, this, &MainWindow::onActionConnect);
-
-    actionDisconnect = new QAction(QIcon(":/icons/disconnect.svg"),
-                                   tr("disconnect"),
-                                   this);
-    actionDisconnect->setEnabled(false);
-    ui->mainToolBar->addAction(actionDisconnect);
-    connect(actionDisconnect, &QAction::triggered, this, &MainWindow::onActionDisconnect);
-
-    ui->mainToolBar->addSeparator();
-
-    actionSettings = new QAction(QIcon(":/icons/settings.svg"),
-                                 tr("option"),
-                                 this);
-    ui->mainToolBar->addAction(actionSettings);
-    connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
+    QTimer *timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &MainWindow::onTimeOut);
+    timer->setInterval(2500);
+    timer->start();
 }
 
 MainWindow::~MainWindow()
@@ -100,6 +50,7 @@ MainWindow::~MainWindow()
     if (_portData->isOpen()) _portData->close();
 
     delete _commThread;
+    delete _mutex;
     delete _plotWorker;
     delete _portUart;
     delete _portData;
@@ -150,8 +101,16 @@ void MainWindow::tryFindSerialPort() {
 
 
 void MainWindow::onActionConnect() {
-    if (_deviceState == CLOSE) {
+    if (_commThread->deviceState() == CommThread::PAUSE) {
+        actionConnect->setEnabled(false);
+        actionDisconnect->setEnabled(true);
+        actionSettings->setEnabled(false);
+        _commThread->setDeviceState(CommThread::OPEN);
+        statusBar()->showMessage("Device Status: Listening");
+        return;
+    }
 
+    if (_commThread->deviceState() == CommThread::CLOSE) {
         if (sensorStart()) {
             qDebug() << "Success to start sensor.";
         } else {
@@ -187,6 +146,8 @@ void MainWindow::onActionConnect() {
         actionConnect->setEnabled(false);
         actionDisconnect->setEnabled(true);
         actionSettings->setEnabled(false);
+        _commThread->setDeviceState(CommThread::OPEN);
+        statusBar()->showMessage("Device Status: Listening");
         return;
     } else {
         QMessageBox::critical(this,
@@ -197,14 +158,14 @@ void MainWindow::onActionConnect() {
 }
 
 void MainWindow::onActionDisconnect() {
-    if (_portData->isOpen()) {
-        _portData->close();
-        _deviceState = PAUSE;
-    }
+    _commThread->setDeviceState(CommThread::PAUSE);
+    statusBar()->showMessage("Device Status: Closed");
 
     actionConnect->setEnabled(true);
     actionDisconnect->setEnabled(false);
     actionSettings->setEnabled(true);
+    _plotWorker->beginReplot();
+    _plotWorker->endReplot();
 }
 
 void MainWindow::onActionSettings() {
@@ -212,6 +173,17 @@ void MainWindow::onActionSettings() {
     if (dlg.exec()) {
         _settings->printInfo();
         _commThread->setOverN(_settings->getFrameRate());
+    }
+}
+
+void MainWindow::onTimeOut()
+{
+    static double lastValue = 0;
+    double cur = ui->lcdNumber->value();
+    if ( (cur - lastValue) < 0.000001) {
+        ui->lcdNumber->display(0);
+    } else {
+        lastValue = cur;
     }
 }
 
@@ -283,6 +255,63 @@ retry:
     return true;
 }
 
+void MainWindow::initGui()
+{
+
+    // Widgets位置尺寸设置
+    auto dh = QApplication::desktop()->height() - menuBar()->height() - statusBar()->height();
+    auto dw = QApplication::desktop()->width();
+
+    ui->tabWidget->setGeometry(0, 0, dw, dh);
+    ui->canvasRange->setGeometry(10, 10, dh-60, dh-60);
+    ui->canvasDoppler->setGeometry(dh-30, 10, dw-dh+10, dh/2-20);
+    ui->gbSpeed->setGeometry(dh-30, dh*5/8,
+                             (dw-dh+20)*3/5-10, dh/4);
+
+
+    ui->gbDisplay->setGeometry((dw-dh+20)*3/5+dh-30, dh*5/8,
+                               (dw-dh+20)*2/5-10, dh/4);
+
+    // 超速标签设置
+    ui->labelExceedSpeed->setStyleSheet("color:green;");
+
+    menuBar()->hide();
+    setWindowTitle(tr("SrrLED"));
+    showFullScreen();
+
+    // 工具栏设置
+    actionConnect = new QAction(QIcon(":/icons/connect.svg"),
+                                    tr("connect"),
+                                    this);
+    ui->mainToolBar->addAction(actionConnect);
+    connect(actionConnect, &QAction::triggered, this, &MainWindow::onActionConnect);
+
+    actionDisconnect = new QAction(QIcon(":/icons/disconnect.svg"),
+                                   tr("disconnect"),
+                                   this);
+    actionDisconnect->setEnabled(false);
+    ui->mainToolBar->addAction(actionDisconnect);
+    connect(actionDisconnect, &QAction::triggered, this, &MainWindow::onActionDisconnect);
+
+    ui->mainToolBar->addSeparator();
+
+    actionSettings = new QAction(QIcon(":/icons/settings.svg"),
+                                 tr("option"),
+                                 this);
+    ui->mainToolBar->addAction(actionSettings);
+    connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
+
+    // 参数显示控件初始化
+    ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twParamSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twParamSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->twPacketSubframe1->setColumnWidth(0, 280);
+    ui->twPacketSubframe2->setColumnWidth(0, 280);
+    ui->twParamSubframe1->setColumnWidth(0, 245);
+    ui->twParamSubframe2->setColumnWidth(0, 245);
+}
+
 void MainWindow::displaySubframeParams() {
     ui->twParamSubframe1->setColumnWidth(0, 190);
     ui->twParamSubframe2->setColumnWidth(0, 190);
@@ -328,47 +357,53 @@ void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
     tw->setItem(0, 8, new QTableWidgetItem(subframeNumber));
 }
 
-void MainWindow::dispSpeed(vector<Tracker_t> &trackers)
+const Tracker_t* MainWindow::extractSpeed(vector<Tracker_t> &trackers)
 {
     auto lessThan = [](const Tracker_t a, const Tracker_t b){
         return a.range < b.range;
     };
-    qSort(trackers.begin(), trackers.end(), lessThan);
+    std::sort(trackers.begin(), trackers.end(), lessThan);
 
-    for (auto t: trackers) {
-        if (t.vy < 0) {
+    for (auto it = trackers.begin(); it != trackers.end(); it++) {
+        if (it->doppler < 0 && std::fabs(it->doppler) > _settings->getFilterThreshold()/3.6) {
             // m/s -> km/h
-            double speed = (t.vx * t.vx + t.vy * t.vy) * 3.6;
-            ui->lcdNumber->display(QString::number(speed, 'g', 3));
+            ui->lcdNumber->display(QString::number(it->doppler * 3.6, 'g', 3));
 
-            if (speed > _settings->getSpeedThreshold()) {
+            if (std::fabs(it->doppler) > _settings->getSpeedThreshold()/3.6) {
                 ui->labelExceedSpeed->setStyleSheet("color:red;");
                 ui->labelExceedSpeed->setText("Exceed");
             } else {
                 ui->labelExceedSpeed->setStyleSheet("color:green;");
                 ui->labelExceedSpeed->setText("Normal");
             }
-
-            return;
+            return &*it;
         }
     }
 
     ui->labelExceedSpeed->setStyleSheet("color:green;");
     ui->labelExceedSpeed->setText("Normal");
+    return nullptr;
 }
 
 void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
     dispPacketDetail(pSrrPacket);
-    dispSpeed(pSrrPacket->getTackers());
+    const Tracker_t *it = nullptr;
+    if (pSrrPacket->getFrameNumber()%2 == 1) {
+        it = extractSpeed(pSrrPacket->getTackers());
+    }
 
     _plotWorker->beginReplot();
+    if (it != nullptr) _plotWorker->drawTarget(*it);
     _plotWorker->drawDetObj(pSrrPacket->getDetObjs(), pSrrPacket->getSubframeNumber());
     _plotWorker->drawClusters(pSrrPacket->getClusters());
     _plotWorker->drawTrackers(pSrrPacket->getTackers());
     _plotWorker->drawParkingAssitBins(pSrrPacket->getParkingAssistBins());
     _plotWorker->endReplot();
 
-    emit dispDone();
+//    emit dispDone();
+    mutexDispDone.lock();
+    _commThread->setIsDispDone(true);
+    mutexDispDone.unlock();
 }
 
 
@@ -376,29 +411,59 @@ void MainWindow::on_cbNearView_toggled(bool checked)
 {
     _plotWorker->setEnableNearView(checked);
     _plotWorker->drawBackground();
+    if (checked) {
+        statusBar()->showMessage("Near View Enabled", 1000);
+    } else {
+        statusBar()->showMessage("Near View Disabled", 1000);
+    }
 }
 
 void MainWindow::on_cbSrrdDetObj_toggled(bool checked)
 {
     _plotWorker->setEnableSrrDetObj(checked);
+    if (checked) {
+        statusBar()->showMessage("Srr Enabled", 1000);
+    } else {
+        statusBar()->showMessage("Srr Disabled", 1000);
+    }
 }
 
 void MainWindow::on_cbUsrrDetObj_toggled(bool checked)
 {
     _plotWorker->setEnableUsrrDetObj(checked);
+    if (checked) {
+        statusBar()->showMessage("USRR Enabled", 1000);
+    } else {
+        statusBar()->showMessage("USRR Disabled", 1000);
+    }
 }
 
 void MainWindow::on_cbCluster_toggled(bool checked)
 {
     _plotWorker->setEnableClusters(checked);
+    if (checked) {
+        statusBar()->showMessage("Clusters View Enabled", 1000);
+    } else {
+        statusBar()->showMessage("Clusters View Disabled", 1000);
+    }
 }
 
 void MainWindow::on_cbTrackers_toggled(bool checked)
 {
     _plotWorker->setEnableTracker(checked);
+    if (checked) {
+        statusBar()->showMessage("Near View Enabled", 1000);
+    } else {
+        statusBar()->showMessage("Near View Disabled", 1000);
+    }
 }
 
 void MainWindow::on_cbParkingAssisBins_toggled(bool checked)
 {
     _plotWorker->setEnableParkingAssitBins(checked);
+    if (checked) {
+        statusBar()->showMessage("Parking Assit Bins Enabled", 1000);
+    } else {
+        statusBar()->showMessage("Parking Assit Bins Disabled", 1000);
+    }
 }

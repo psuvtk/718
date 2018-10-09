@@ -1,6 +1,11 @@
 #include "srrpacket.h"
 #include <QDebug>
 
+SrrPacket::SrrPacket()
+{
+
+}
+
 SrrPacket::SrrPacket(const char *pSrrPacket) {
     int errCount = 0;
     _pHeader = reinterpret_cast<const struct __header_t*>(pSrrPacket);
@@ -15,38 +20,37 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
 
         switch (type) {
         case __TLV_Type::MMWDEMO_UART_MSG_DETECTED_POINTS:
-            qDebug() << "tlvType => MMWDEMO_UART_MSG_DETECTED_POINTS";
+//            qDebug() << "tlvType => MMWDEMO_UART_MSG_DETECTED_POINTS";
             extractDetObj(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_CLUSTERS:
-            qDebug() << "tlvType => MMWDEMO_UART_MSG_CLUSTERS";
+//            qDebug() << "tlvType => MMWDEMO_UART_MSG_CLUSTERS";
             extractCluster(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_TRACKED_OBJ:
-            qDebug() << "tlvType => MMWDEMO_UART_MSG_TRACKED_OBJ";
+//            qDebug() << "tlvType => MMWDEMO_UART_MSG_TRACKED_OBJ";
             extractTracker(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_PARKING_ASSIST:
-            qDebug() << "tlvType => MMWDEMO_UART_MSG_PARKING_ASSIST";
+//            qDebug() << "tlvType => MMWDEMO_UART_MSG_PARKING_ASSIST";
             extractParkingAssisBin(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_STATS:
-            qDebug() << "tlvType => MMWDEMO_UART_MSG_STATS";
+//            qDebug() << "tlvType => MMWDEMO_UART_MSG_STATS";
             extractStatsInfo(tl);
             tl += STATS_SIZE_BYTES;
             break;
         default:
-            qDebug() << "tlvType => Unkown";
+//            qDebug() << "tlvType => Unkown";
             _valid = false;
             if (errCount++ > 2 ) return;
             break;
         }
     }
-    qDebug() << "----------------------------\n\n";
 }
 
 void SrrPacket::query() {
@@ -69,7 +73,6 @@ void SrrPacket::extractDetObj(const char *tl) {
     uint16_t xyzQFormat = getDescrQFormat(tl);
     double invQFormat = 1.0 / (1 << xyzQFormat);
     tl += DESCR_STRUCT_SIZE_BYTES;
-    qDebug() << "numObj: " << numObjs;
     const __detObj_t *rawDetObj = (const struct __detObj_t *)tl;
 
     for (uint16_t j = 0; j < numObjs; j++, rawDetObj++) {
@@ -82,7 +85,6 @@ void SrrPacket::extractDetObj(const char *tl) {
 
         _detObjs.push_back(detObj);
     }
-    qDebug() << "size of _detObj: " << _detObjs.size();
 }
 
 void SrrPacket::extractCluster(const char *tl) {
@@ -104,7 +106,6 @@ void SrrPacket::extractCluster(const char *tl) {
 
         _clusters.push_back(clusterObj);
     }
-    qDebug() << "size of _clusters: " << _clusters.size();
 }
 
 void SrrPacket::extractTracker(const char *tl) {
@@ -131,12 +132,44 @@ void SrrPacket::extractTracker(const char *tl) {
 
         _trackers.push_back(trackerObj);
     }
-    qDebug() << "size of _trackers: " << _trackers.size();
+
 }
 
 void SrrPacket::extractParkingAssisBin(const char *tl)
 {
-    qDebug() << "Not impl SrrPacket::extractParkingAssisBin(const char *ptr)";
+    uint16_t numObjs = getDescrNumObj(tl);
+    uint16_t xyzQFormat = getDescrQFormat(tl);
+    double invQFormat = 1.0 / (1 << xyzQFormat);
+    tl += DESCR_STRUCT_SIZE_BYTES;
+
+
+    QVector<double> range;
+    for (int i=0; i < numObjs; i++, tl+=PARKING_ASSIST_BIN_SIZE_BYTES) {
+        range << *((uint16_t *)tl) * invQFormat;
+    }
+
+    // fftshift
+    for (int i = 0; i < numObjs/2; i++) {
+        double tmp = range[i];
+        range[i] = range[i+numObjs/2];
+        range[i+numObjs/2] = tmp;
+    }
+    range << range[0];
+
+    QVector<double> xl, yl;
+    for (int i=0; i<numObjs+2; i++) {
+        xl << -1+i*2.0/(numObjs+1);
+        yl << std::sqrt(1-xl[i] * xl[i]);
+    }
+
+    for (int i=0; i<numObjs+1; i++) {
+        ParkingAssistBin_t p;
+        p.x1 = range[i] * xl[i];
+        p.x2 = range[i] * xl[i+1];
+        p.y1 = range[i] * yl[i];
+        p.y2 = range[i] * yl[i+1];
+        _parkingAssistBins.push_back(p);
+    }
 }
 
 void SrrPacket::extractStatsInfo(const char *tl)

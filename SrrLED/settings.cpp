@@ -75,6 +75,12 @@ void Settings::readLocalSettings() {
     } else {
         _speedThreshold = 18.0;
     }
+
+    if (settings.contains("filterThreshold")) {
+        _filterThreshold = settings.value("filterThreshold").toDouble();
+    } else {
+        _filterThreshold = 0.36;
+    }
 }
 
 void Settings::writeLocalSettings() {
@@ -82,6 +88,7 @@ void Settings::writeLocalSettings() {
     QSettings settings(this->parent());
     settings.setValue("frameRate", _frameRate);
     settings.setValue("speedThreshold", _speedThreshold);
+    settings.setValue("filterThreshold", _filterThreshold);
 }
 
 double Settings::getSpeedThreshold() const
@@ -102,4 +109,14 @@ int Settings::getFrameRate() const
 void Settings::setFrameRate(int frameRate)
 {
     _frameRate = frameRate;
+}
+
+double Settings::getFilterThreshold() const
+{
+    return _filterThreshold;
+}
+
+void Settings::setFilterThreshold(double filterThreshold)
+{
+    _filterThreshold = filterThreshold;
 }

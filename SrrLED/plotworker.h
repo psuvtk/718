@@ -12,11 +12,12 @@ public:
     explicit PlotWorker(QCustomPlot *canvasRange, QCustomPlot *canvasDoppler);
 
     void drawBackground();
-    void drawDetObj(vector<DetObj_t> &objs, int subframeNum);
+    void drawDetObj(vector<DetObj_t> &objs, quint32 subframeNum);
     void drawClusters(vector<Cluster_t> &clusters);
     void drawTrackers(vector<Tracker_t> &trackers);
     void drawParkingAssitBins(vector<ParkingAssistBin_t> &objs);
-    void drawTarget(Tracker_t);
+
+    void drawTarget(const Tracker_t &t);
 
     void beginReplot();
     void endReplot();
@@ -49,6 +50,7 @@ private:
     QVector<double> _rangeSrr, _dopplerSrr;
     QVector<double> _xUsrr, _yUsrr;
     QVector<double> _rangeUsrr, _dopplerUsrr;
+    QVector<ParkingAssistBin_t> _parkingAssitBins;
 };
 
 #endif // PLOTWORKER_H

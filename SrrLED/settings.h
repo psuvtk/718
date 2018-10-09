@@ -40,6 +40,9 @@ public:
     int getFrameRate() const;
     void setFrameRate(int frameRate);
 
+    double getFilterThreshold() const;
+    void setFilterThreshold(double filterThreshold);
+
 private:
     QString _portNameData;
     qint32 _baudRateData;
@@ -50,6 +53,7 @@ private:
     QString _configFilePath;
 
     double _speedThreshold;
+    double _filterThreshold;
     int _frameRate;
 };
 

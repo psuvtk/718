@@ -7,11 +7,19 @@
 #include "srrpacket.h"
 #include <QDebug>
 #include <QByteArray>
+#include <QTime>
+#include <QMutex>
+#include <QMutexLocker>
 
 class CommThread : public QThread
 {
     Q_OBJECT
-
+public:
+    enum DeviceState {
+        CLOSE,
+        OPEN,
+        PAUSE
+    };
 public:
     CommThread();
 
@@ -20,18 +28,26 @@ public:
 
     void waitForDispDone();
 
-    void setOverN(int overN);
+    void setOverN(uint overN);
+
+    DeviceState deviceState() const;
+    void setDeviceState(const DeviceState &deviceState);
+
+    void setIsDispDone(bool isDispDone);
 
 public slots:
     void onDispDone();
+    void onDataReady();
 
 signals:
     void frameChanged(SrrPacket *);
 
 private:
     QSerialPort *_device = nullptr;
-    bool _isDispDone = false;
-    int _overN = 1;
+    DeviceState _deviceState = CLOSE;
+
+    bool _isDispDone = true;
+    uint _overN = 1;
 };
 
 #endif // UARTTHREAD_H

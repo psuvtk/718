@@ -236,18 +236,18 @@
          <x>10</x>
          <y>30</y>
          <width>391</width>
-         <height>80</height>
+         <height>86</height>
         </rect>
        </property>
        <layout class="QFormLayout" name="formLayout_2">
-        <item row="0" column="0">
+        <item row="2" column="0">
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>速度门限(km/h)：</string>
+           <string>超速门限(km/h)：</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
+        <item row="2" column="1">
          <widget class="QDoubleSpinBox" name="dsbSpeedThreshold">
           <property name="maximum">
            <double>200.000000000000000</double>
@@ -257,14 +257,14 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
+        <item row="3" column="0">
          <widget class="QLabel" name="label_4">
           <property name="text">
            <string>帧率(Hz):</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
+        <item row="3" column="1">
          <widget class="QComboBox" name="cbFrameRate">
           <item>
            <property name="text">
@@ -291,6 +291,23 @@
             <string>五分之一(6.6)</string>
            </property>
           </item>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>滤波门限(km/h)：</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QDoubleSpinBox" name="dsbFilterThreshold">
+          <property name="maximum">
+           <double>200.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.360000000000000</double>
+          </property>
          </widget>
         </item>
        </layout>

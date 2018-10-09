@@ -9,6 +9,9 @@
 #include <QFileDialog>
 #include <QDesktopWidget>
 #include <QTableWidgetItem>
+#include <QTimer>
+#include <QMutex>
+
 #include <cmath>
 #include "srrpacket.h"
 #include "dialogpreference.h"
@@ -17,6 +20,7 @@
 #include "qcustomplot.h"
 #include "plotworker.h"
 
+
 namespace Ui {
 class MainWindow;
 }
@@ -24,21 +28,18 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-    enum DeviceState {
-        CLOSE,
-        OPEN,
-        PAUSE
-    };
+
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     void tryFindSerialPort();
     void displaySubframeParams();
     void dispPacketDetail(SrrPacket *);
-    void dispSpeed(vector<Tracker_t> &trackers);
+    const Tracker_t* extractSpeed(vector<Tracker_t> &trackers);
     bool sensorStart();
 
+    void initGui();
 
 signals:
     void dispDone();
@@ -51,6 +52,7 @@ private slots:
     void onActionConnect();
     void onActionDisconnect();
     void onActionSettings();
+    void onTimeOut();
 
     void on_cbNearView_toggled(bool checked);
 
@@ -72,11 +74,11 @@ private:
 
     QSerialPort *_portUart;
     QSerialPort *_portData;
-    DeviceState _deviceState;
 
     QAction *actionConnect;
     QAction *actionDisconnect;
     QAction *actionSettings;
+    QMutex *_mutex;
 };
 
 #endif // MAINWINDOW_H

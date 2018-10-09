@@ -37,11 +37,12 @@ struct Tracker_t
     double doppler;
 };
 
-
-
 struct ParkingAssistBin_t
 {
-
+    double x1;
+    double x2;
+    double y1;
+    double y2;
 };
 
 struct StatsInfo_t
@@ -143,11 +144,12 @@ class SrrPacket {
     };
 
 public:
-    SrrPacket() = delete;
+    SrrPacket();
     explicit SrrPacket(const char *pSrrPacket);
     bool isValid() { return _valid; }
     void query();
 
+    void parse(const char *pSrrPacket);
     uint32_t getVersion() { return _pHeader->version; }
     uint32_t getTotalPacketLen() { return _pHeader->totalPacketLen; }
     uint32_t getPlatform() { return _pHeader->platform; }
@@ -179,7 +181,7 @@ private:
     void extractParkingAssisBin(const char *tl);
 
 private:
-    const struct __header_t *_pHeader;
+    const struct __header_t *_pHeader = nullptr;
 
     vector<DetObj_t> _detObjs;
     vector<Cluster_t> _clusters;
@@ -191,5 +193,3 @@ private:
 };
 
 #endif // SRRPACKET_H
-
-

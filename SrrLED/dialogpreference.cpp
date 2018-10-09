@@ -33,6 +33,7 @@ void DialogPreference::on_pbSave_clicked()
     }
 
     _settings->setSpeedThreshold(ui->dsbSpeedThreshold->value());
+    _settings->setFilterThreshold(ui->dsbFilterThreshold->value());
     _settings->setFrameRate(ui->cbFrameRate->currentIndex() + 1);
 
     this->accept();
@@ -81,6 +82,7 @@ void DialogPreference::fillComboBoxes() {
 
     ui->cbFrameRate->setCurrentIndex(_settings->getFrameRate()-1);
     ui->dsbSpeedThreshold->setValue(_settings->getSpeedThreshold());
+    ui->dsbFilterThreshold->setValue(_settings->getFilterThreshold());
 }
 
 
