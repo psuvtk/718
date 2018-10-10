@@ -9,8 +9,8 @@ using std::vector;
 
 struct DetObj_t
 {
-    double x;             /*!< @brief x - coordinate in meters. */
-    double y;             /*!< @brief y - coordinate in meters.  */
+    double x;
+    double y;
     double doppler;
     double peakVal;
     double range;
@@ -55,6 +55,7 @@ struct StatsInfo_t
     uint32_t interFrameCpuLoad;
 };
 
+
 class SrrPacket {
     const uint32_t HEAD_STRUCT_SIZE_BYTES = 40;
     const uint32_t TL_STRUCT_SIZE_BYTES = 8;
@@ -68,11 +69,11 @@ class SrrPacket {
 
     enum __TLV_Type
     {
-        MMWDEMO_UART_MSG_DETECTED_POINTS    = 1,
-        MMWDEMO_UART_MSG_CLUSTERS           = 2,
-        MMWDEMO_UART_MSG_TRACKED_OBJ        = 3,
-        MMWDEMO_UART_MSG_PARKING_ASSIST     = 4,
-        MMWDEMO_UART_MSG_STATS = 6,
+        MMWDEMO_UART_MSG_DETECTED_POINTS    = 1,     // 目标
+        MMWDEMO_UART_MSG_CLUSTERS           = 2,     // 聚类
+        MMWDEMO_UART_MSG_TRACKED_OBJ        = 3,     // 跟踪
+        MMWDEMO_UART_MSG_PARKING_ASSIST     = 4,     // 停车辅助
+        MMWDEMO_UART_MSG_STATS              = 6,     // 状态信息
     };
 
     struct __header_t
@@ -90,8 +91,8 @@ class SrrPacket {
 
     struct __tl_t
     {
-       uint32_t type;
-       uint32_t length;
+       uint32_t type;          // 类型
+       uint32_t length;        // 长度
     };
 
     struct __detObj_t
@@ -137,27 +138,24 @@ class SrrPacket {
 
     struct __dataObjDescr_t
     {
-        /* Number of detected object*/
         uint16_t numObj;
-        /* Q format of detected objects x/y/z coordinates */
         uint16_t xyzQFormat;
     };
 
 public:
-    SrrPacket();
-    explicit SrrPacket(const char *pSrrPacket);
-    bool isValid() { return _valid; }
-    void query();
+    SrrPacket() = delete;
+    explicit SrrPacket(const char *pSrrPacket, int length);
+    bool isValid() const { return _valid; }
 
     void parse(const char *pSrrPacket);
-    uint32_t getVersion() { return _pHeader->version; }
-    uint32_t getTotalPacketLen() { return _pHeader->totalPacketLen; }
-    uint32_t getPlatform() { return _pHeader->platform; }
-    uint32_t getFrameNumber() { return _pHeader->frameNumber; }
-    uint32_t getTimeCpuCycles() { return _pHeader->timeCpuCycles; }
-    uint32_t getNumDetectedObj() { return _pHeader->numDetectedObj; }
-    uint32_t getNumTLVs() { return _pHeader->numTLVs; }
-    uint32_t getSubframeNumber() { return _pHeader->subFrameNumber; }
+    uint32_t getVersion() const { return _pHeader->version; }
+    uint32_t getTotalPacketLen() const { return _pHeader->totalPacketLen; }
+    uint32_t getPlatform() const { return _pHeader->platform; }
+    uint32_t getFrameNumber() const { return _pHeader->frameNumber; }
+    uint32_t getTimeCpuCycles() const { return _pHeader->timeCpuCycles; }
+    uint32_t getNumDetectedObj() const { return _pHeader->numDetectedObj; }
+    uint32_t getNumTLVs() const { return _pHeader->numTLVs; }
+    uint32_t getSubframeNumber() const { return _pHeader->subFrameNumber; }
 
     vector<DetObj_t>& getDetObjs() { return _detObjs; }
     vector<Tracker_t>& getTackers() { return _trackers; }
@@ -169,10 +167,10 @@ public:
 
 
 private:
-    uint32_t getTlvType(const char *p) { return ((const struct __tl_t *)p)->type; }
-    uint32_t getTlvLength(const char *p) { return ((const struct __tl_t *)p)->length; }
-    uint16_t getDescrNumObj(const char *p) { return ((const struct __dataObjDescr_t *)p)->numObj; }
-    uint16_t getDescrQFormat(const char *p) { return ((const struct __dataObjDescr_t *)p)->xyzQFormat; }
+    uint32_t getTlvType(const char *tl) const { return reinterpret_cast<const __tl_t*>(tl)->type; }
+    uint32_t getTlvLength(const char *tl) const { return reinterpret_cast<const __tl_t*>(tl)->length; }
+    uint16_t getDescrNumObj(const char *descr) const { return reinterpret_cast<const __dataObjDescr_t*>(descr)->numObj; }
+    uint16_t getDescrQFormat(const char *descr) const { return reinterpret_cast<const __dataObjDescr_t*>(descr)->xyzQFormat; }
 
     void extractDetObj(const char *tl);
     void extractCluster(const char *tl);

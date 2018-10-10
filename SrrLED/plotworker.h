@@ -44,7 +44,7 @@ private:
     bool _enableUsrrDetObj = true;
     bool _enableClusters = true;
     bool _enableTracker = true;
-    bool _enableParkingAssitBins = false;
+    bool _enableParkingAssitBins = true;
 
     QVector<double> _xSrr, _ySrr;
     QVector<double> _rangeSrr, _dopplerSrr;

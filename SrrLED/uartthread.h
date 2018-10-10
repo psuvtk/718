@@ -3,13 +3,15 @@
 #include <QObject>
 #include <QThread>
 #include <QSerialPort>
-#include "settings.h"
-#include "srrpacket.h"
+
 #include <QDebug>
 #include <QByteArray>
 #include <QTime>
 #include <QMutex>
 #include <QMutexLocker>
+
+#include "settings.h"
+#include "srrpacket.h"
 
 class CommThread : public QThread
 {
@@ -20,34 +22,50 @@ public:
         OPEN,
         PAUSE
     };
+
+    enum FramePerMinute {
+        FPM33 = 1,
+        FPM16,
+        FPM11,
+        FPM8,
+        FPM6
+    };
 public:
-    CommThread();
+    CommThread() = delete;
+    explicit CommThread(QSerialPort *_device);
 
     void run();
-    void setHandle(QSerialPort *_device);
-
-    void waitForDispDone();
-
-    void setOverN(uint overN);
 
     DeviceState deviceState() const;
-    void setDeviceState(const DeviceState &deviceState);
 
-    void setIsDispDone(bool isDispDone);
+private:
 
-public slots:
-    void onDispDone();
-    void onDataReady();
 
 signals:
     void frameChanged(SrrPacket *);
+    void deviceOpenSuccess();
+    void deviceOpenFailed();
+
+    void connectionLost();
+
+public slots:
+    void onDispDone();
+    void onFrameRateChanged(FramePerMinute fm);
+    void onDeviceStateChanged(const DeviceState &deviceState);
+
+    void onDeviceOpen();
+    void onSerialPortError(QSerialPort::SerialPortError error);
+
+private slots:
+    void onDataReady();
+
 
 private:
     QSerialPort *_device = nullptr;
-    DeviceState _deviceState = CLOSE;
 
+    FramePerMinute _frameRate = FPM33;
+    DeviceState _deviceState = CLOSE;
     bool _isDispDone = true;
-    uint _overN = 1;
 };
 
 #endif // UARTTHREAD_H

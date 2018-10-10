@@ -1,89 +1,26 @@
 #include "uartthread.h"
 
-bool isDispDone = true;
-QMutex mutexDispDone;
+CommThread::CommThread(QSerialPort *device)
+{
+    if (device == nullptr) return;
 
-CommThread::CommThread() {
-}
-
-void CommThread::setHandle(QSerialPort *handle) {
-    _device = handle;
     // 要在设置handle之后进行connect·
+    _device = device;
     connect(_device, &QSerialPort::readyRead, this, &CommThread::onDataReady);
+//    connect(_device, &QSerialPort::errorOccurred, this, [](){
+//        qDebug() << "Serail Port Connection Disconnect";
+//    });
+
+    connect(_device, &QSerialPort::errorOccurred, this, &CommThread::onSerialPortError);
 }
 
 void CommThread::run() {
-////    QByteArray SYNC = QByteArray::fromHex("0201040306050807");
-////    QByteArray bufRecv;
-////    QByteArray bufFrame;
-////    qint32 skipLength = 0;
-////    qint32 nErr = 0;
-////       auto         start = QTime::currentTime();
-////    while (true) {
-////        if (_deviceState == CLOSE || _deviceState == PAUSE) {
-////            bufRecv.clear();
-////            if (_device->isOpen())_device->clear();
-////            qDebug() << QTime::currentTime()<< ": waiting";
-////            msleep(100);
-////            continue;
-////        }
-
-////        qDebug() << "before";
-////        QThread::msleep(5);
-////        bufRecv.append(_device->readAll());
-////        qDebug() << "after";
-
-////        if (bufRecv.startsWith(SYNC)) {
-////            skipLength = bufRecv.indexOf(SYNC, 8);
-////            if (skipLength != -1) {
-////                bufFrame.append(bufRecv.left(skipLength));
-////                bufRecv.remove(0, skipLength);
-
-////                SrrPacket packet(bufFrame.data());
-////                if (packet.isValid()) {
-////                    qDebug() << QTime::currentTime() << packet.getTimeCpuCycles();
-
-////                    if (packet.getFrameNumber()%(2*_overN) < 2) {
-////                        qDebug() << "in";
-////                        emit frameChanged(&packet);
-////                        qDebug() << "after  emit";
-////                        waitForDispDone();
-////                        bufFrame.clear();
-
-////                    } else {
-////                        skipLength = bufRecv.indexOf(SYNC, 8);
-////                        bufRecv.remove(0, skipLength);
-////                        bufFrame.clear();
-////                    }
-////                }
-////            } else {
-////                continue;
-////            }
-////        } else {
-////            skipLength = bufRecv.indexOf(SYNC);
-////            if (skipLength == -1) bufRecv.clear();
-////            nErr++;
-////            if (nErr > 2) {
-////                nErr = 0;
-////                bufRecv.clear();
-////                bufFrame.clear();
-////            }
-////            qDebug() << "未检测到同步码元" << "\n";
-////            continue;
-////        }
-
-
-////    }
-///
-
-//    connect(_device, &QSerialPort::readyRead, this, &CommThread::onDataReady);
-
+    exec();
 }
 
-void CommThread::waitForDispDone() {
-    _isDispDone = false;
-    while (!_isDispDone)
-        ;
+void CommThread::onFrameRateChanged(CommThread::FramePerMinute fm)
+{
+    _frameRate = fm;
 }
 
 void CommThread::onDispDone() {
@@ -95,14 +32,19 @@ CommThread::DeviceState CommThread::deviceState() const
     return _deviceState;
 }
 
-void CommThread::setDeviceState(const DeviceState &deviceState)
+void CommThread::onDeviceStateChanged(const CommThread::DeviceState &deviceState)
 {
     _deviceState = deviceState;
 }
 
-void CommThread::setOverN(uint overN)
+void CommThread::onDeviceOpen()
 {
-    _overN = overN;
+    if (_device->open(QIODevice::ReadOnly)) {
+        _deviceState = OPEN;
+        emit deviceOpenSuccess();
+    } else {
+        emit deviceOpenFailed();
+    }
 }
 
 void CommThread::onDataReady()
@@ -111,7 +53,28 @@ void CommThread::onDataReady()
     static QByteArray bufRecv;
     QByteArray bufFrame;
     qint32 skipLength = 0;
-    qDebug() << QTime::currentTime();
+    static int errorCounter = 0;
+
+    if (_deviceState == PAUSE || _deviceState == CLOSE) {
+        bufRecv.clear();
+        return;
+    }
+
+//    if (_deviceState == OPEN && !_device->isOpen()){
+//        qDebug() << "Device Lost Connection!";
+//        reconnect();
+//        return;
+//    }
+
+
+    if (!_isDispDone) {
+        qDebug() << "Not Disp Done Yet";
+        return;
+    } else {
+        bufFrame.clear();
+    }
+
+    // 读取
     bufRecv.append(_device->readAll());
     if (bufRecv.startsWith(SYNC)) {
         skipLength = bufRecv.indexOf(SYNC, 8);
@@ -119,17 +82,20 @@ void CommThread::onDataReady()
             bufFrame.append(bufRecv.left(skipLength));
             bufRecv.remove(0, skipLength);
 
-            SrrPacket packet(bufFrame.data());
+            SrrPacket packet(bufFrame.data(), bufFrame.length());
             if (packet.isValid()) {
-                qDebug() << QTime::currentTime() << packet.getTimeCpuCycles();
-                if (packet.getFrameNumber()%(2*_overN) < 2) {
+                qDebug() << "Parsed Frame #" << packet.getFrameNumber();
+                if (packet.getFrameNumber()%(2*static_cast<unsigned>(_frameRate)) < 2) {
                     emit frameChanged(&packet);
-                    bufFrame.clear();
+                    _isDispDone = false;
                 } else {
                     skipLength = bufRecv.indexOf(SYNC, 8);
                     bufRecv.remove(0, skipLength);
                     bufFrame.clear();
                 }
+            } else {
+                qDebug() << "Packet Broken!";
+                bufFrame.clear();
             }
         } else {
             // pass
@@ -143,7 +109,13 @@ void CommThread::onDataReady()
 
 }
 
-void CommThread::setIsDispDone(bool isDispDone)
+void CommThread::onSerialPortError(QSerialPort::SerialPortError error)
 {
-    _isDispDone = isDispDone;
+    // 重试三次
+    for (int i = 0; i < 3; i++) {
+//        if (_device->isOpen()) return;
+//        if (_device->open(QIODevice::ReadOnly)) return;
+        msleep(300);
+    }
+    emit connectionLost();
 }

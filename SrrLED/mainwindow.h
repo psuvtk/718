@@ -11,6 +11,7 @@
 #include <QTableWidgetItem>
 #include <QTimer>
 #include <QMutex>
+#include <QMetaType>
 
 #include <cmath>
 #include "srrpacket.h"
@@ -43,9 +44,17 @@ public:
 
 signals:
     void dispDone();
+    void deviceOpen();
+
+    void deviceStateChanged(const CommThread::DeviceState &deviceState);
+    void frameRateChanged(const CommThread::FramePerMinute &frameRate);
 
 public slots:
+    // commthread
     void onFrameChanged(SrrPacket *);
+    void onDeviceOpenSuccess();
+    void onDeviceOpenFailed();
+    void onConnectionLost();
 
 private slots:
     void showAboutMessage();
@@ -54,6 +63,10 @@ private slots:
     void onActionSettings();
     void onTimeOut();
 
+
+
+
+    // gui
     void on_cbNearView_toggled(bool checked);
 
     void on_cbSrrdDetObj_toggled(bool checked);

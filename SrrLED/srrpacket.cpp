@@ -1,17 +1,13 @@
 #include "srrpacket.h"
-#include <QDebug>
 
-SrrPacket::SrrPacket()
-{
-
-}
-
-SrrPacket::SrrPacket(const char *pSrrPacket) {
-    int errCount = 0;
+SrrPacket::SrrPacket(const char *pSrrPacket, int length) {
     _pHeader = reinterpret_cast<const struct __header_t*>(pSrrPacket);
-
     const char *tl = pSrrPacket + HEAD_STRUCT_SIZE_BYTES;
-//    query();
+
+    if (static_cast<uint32_t>(length) != getTotalPacketLen()) {
+        _valid = false;
+        return;
+    }
 
     for (uint32_t i = 0; i < getNumTLVs(); i++) {
         uint32_t type = getTlvType(tl);
@@ -20,52 +16,31 @@ SrrPacket::SrrPacket(const char *pSrrPacket) {
 
         switch (type) {
         case __TLV_Type::MMWDEMO_UART_MSG_DETECTED_POINTS:
-//            qDebug() << "tlvType => MMWDEMO_UART_MSG_DETECTED_POINTS";
             extractDetObj(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_CLUSTERS:
-//            qDebug() << "tlvType => MMWDEMO_UART_MSG_CLUSTERS";
             extractCluster(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_TRACKED_OBJ:
-//            qDebug() << "tlvType => MMWDEMO_UART_MSG_TRACKED_OBJ";
             extractTracker(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_PARKING_ASSIST:
-//            qDebug() << "tlvType => MMWDEMO_UART_MSG_PARKING_ASSIST";
             extractParkingAssisBin(tl);
             tl += len;
             break;
         case __TLV_Type::MMWDEMO_UART_MSG_STATS:
-//            qDebug() << "tlvType => MMWDEMO_UART_MSG_STATS";
             extractStatsInfo(tl);
             tl += STATS_SIZE_BYTES;
             break;
         default:
-//            qDebug() << "tlvType => Unkown";
             _valid = false;
-            if (errCount++ > 2 ) return;
-            break;
+            // 出错直接返回跳过该帧
+            return;
         }
     }
-}
-
-void SrrPacket::query() {
-    qDebug() << "\n\nPacket Header-------------";
-    qDebug("Version: 0x%08X", getVersion()) ;
-    qDebug() << "TotalPacketLen: " << getTotalPacketLen();
-    qDebug("Platform: 0x%08X", getPlatform());
-    qDebug() << "FrameNumber: " << getFrameNumber();
-    qDebug() << "TimeCpuCycles: " << getTimeCpuCycles();
-    qDebug() << "NumDetectedObj: " << getNumDetectedObj();
-    qDebug() << "NumTLVs: " << getNumTLVs();
-    qDebug() << "SubframeNumber: " << getSubframeNumber();
-    qDebug() << "----------------------------";
-
-    // TODO: display detobj tracker cluster ...
 }
 
 void SrrPacket::extractDetObj(const char *tl) {
@@ -73,7 +48,8 @@ void SrrPacket::extractDetObj(const char *tl) {
     uint16_t xyzQFormat = getDescrQFormat(tl);
     double invQFormat = 1.0 / (1 << xyzQFormat);
     tl += DESCR_STRUCT_SIZE_BYTES;
-    const __detObj_t *rawDetObj = (const struct __detObj_t *)tl;
+
+    const __detObj_t *rawDetObj = reinterpret_cast<const struct __detObj_t *>(tl);
 
     for (uint16_t j = 0; j < numObjs; j++, rawDetObj++) {
         DetObj_t detObj;
@@ -93,7 +69,7 @@ void SrrPacket::extractCluster(const char *tl) {
     double invQFormat = 1.0 / (1 << xyzQFormat);
     tl += DESCR_STRUCT_SIZE_BYTES;
 
-    const __cluster_t *rawClusterObj = (const struct __cluster_t *)tl;
+    const __cluster_t *rawClusterObj = reinterpret_cast<const struct __cluster_t *>(tl);
 
     for (uint16_t i = 0; i < numObjs; i++, rawClusterObj++) {
         Cluster_t clusterObj;
@@ -114,7 +90,7 @@ void SrrPacket::extractTracker(const char *tl) {
     double invQFormat = 1.0 / (1 << xyzQFormat);
     tl += DESCR_STRUCT_SIZE_BYTES;
 
-    const __tracker_t *rawTrackerObj = (const __tracker_t *)tl;
+    const __tracker_t *rawTrackerObj = reinterpret_cast<const struct __tracker_t *>(tl);
 
     for (uint16_t i = 0; i < numObjs; i++, rawTrackerObj++) {
         Tracker_t trackerObj;
@@ -132,7 +108,6 @@ void SrrPacket::extractTracker(const char *tl) {
 
         _trackers.push_back(trackerObj);
     }
-
 }
 
 void SrrPacket::extractParkingAssisBin(const char *tl)
@@ -142,27 +117,26 @@ void SrrPacket::extractParkingAssisBin(const char *tl)
     double invQFormat = 1.0 / (1 << xyzQFormat);
     tl += DESCR_STRUCT_SIZE_BYTES;
 
-
-    QVector<double> range;
-    for (int i=0; i < numObjs; i++, tl+=PARKING_ASSIST_BIN_SIZE_BYTES) {
-        range << *((uint16_t *)tl) * invQFormat;
+    vector<double> range;
+    for (int i = 0; i < numObjs; i++, tl += PARKING_ASSIST_BIN_SIZE_BYTES) {
+        range.push_back(*(reinterpret_cast<const uint16_t *>(tl)) * invQFormat);
     }
 
     // fftshift
-    for (int i = 0; i < numObjs/2; i++) {
+    for (unsigned i = 0; i < numObjs/2; i++) {
         double tmp = range[i];
         range[i] = range[i+numObjs/2];
         range[i+numObjs/2] = tmp;
     }
-    range << range[0];
+    range.push_back(range[0]);
 
-    QVector<double> xl, yl;
-    for (int i=0; i<numObjs+2; i++) {
-        xl << -1+i*2.0/(numObjs+1);
-        yl << std::sqrt(1-xl[i] * xl[i]);
+    vector<double> xl, yl;
+    for (unsigned i=0; i<numObjs+2; i++) {
+        xl.push_back(-1+i*2.0/(numObjs+1));
+        yl.push_back(std::sqrt(1-xl[i] * xl[i]));
     }
 
-    for (int i=0; i<numObjs+1; i++) {
+    for (unsigned i = 0; i<numObjs+1; i++) {
         ParkingAssistBin_t p;
         p.x1 = range[i] * xl[i];
         p.x2 = range[i] * xl[i+1];
