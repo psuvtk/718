@@ -35,7 +35,7 @@ void DialogPreference::on_pbSave_clicked()
     _settings->setSpeedThreshold(ui->dsbSpeedThreshold->value());
     _settings->setFilterThreshold(ui->dsbFilterThreshold->value());
     _settings->setFrameRate(ui->cbFrameRate->currentIndex() + 1);
-
+    _settings->setFullscreenOnStartup(ui->cbFullScreen->isChecked());
     this->accept();
 }
 

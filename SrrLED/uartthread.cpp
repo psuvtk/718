@@ -6,25 +6,21 @@ CommThread::CommThread(QSerialPort *device)
 
     // 要在设置handle之后进行connect·
     _device = device;
-    connect(_device, &QSerialPort::readyRead, this, &CommThread::onDataReady);
-//    connect(_device, &QSerialPort::errorOccurred, this, [](){
-//        qDebug() << "Serail Port Connection Disconnect";
-//    });
-
-    connect(_device, &QSerialPort::errorOccurred, this, &CommThread::onSerialPortError);
+    connect(_device, &QSerialPort::readyRead, this, &CommThread::handleReadReady);
+    connect(_device, &QSerialPort::errorOccurred, this, &CommThread::handleError);
 }
 
 void CommThread::run() {
     exec();
 }
 
-void CommThread::onFrameRateChanged(CommThread::FramePerMinute fm)
-{
-    _frameRate = fm;
+void CommThread::handleDispDone() {
+    _isDispDone = true;
 }
 
-void CommThread::onDispDone() {
-    _isDispDone = true;
+void CommThread::handleFrameRateChanged(CommThread::FramePerSecond fm)
+{
+    _frameRate = fm;
 }
 
 CommThread::DeviceState CommThread::deviceState() const
@@ -32,12 +28,12 @@ CommThread::DeviceState CommThread::deviceState() const
     return _deviceState;
 }
 
-void CommThread::onDeviceStateChanged(const CommThread::DeviceState &deviceState)
+void CommThread::handleDeviceStateChanged(const CommThread::DeviceState &deviceState)
 {
     _deviceState = deviceState;
 }
 
-void CommThread::onDeviceOpen()
+void CommThread::handleDeviceOpen()
 {
     if (_device->open(QIODevice::ReadOnly)) {
         _deviceState = OPEN;
@@ -47,7 +43,7 @@ void CommThread::onDeviceOpen()
     }
 }
 
-void CommThread::onDataReady()
+void CommThread::handleReadReady()
 {
     static QByteArray SYNC = QByteArray::fromHex("0201040306050807");
     static QByteArray bufRecv;
@@ -55,17 +51,10 @@ void CommThread::onDataReady()
     qint32 skipLength = 0;
     static int errorCounter = 0;
 
-    if (_deviceState == PAUSE || _deviceState == CLOSE) {
+    if (_deviceState == PAUSE) {
         bufRecv.clear();
         return;
     }
-
-//    if (_deviceState == OPEN && !_device->isOpen()){
-//        qDebug() << "Device Lost Connection!";
-//        reconnect();
-//        return;
-//    }
-
 
     if (!_isDispDone) {
         qDebug() << "Not Disp Done Yet";
@@ -109,13 +98,18 @@ void CommThread::onDataReady()
 
 }
 
-void CommThread::onSerialPortError(QSerialPort::SerialPortError error)
+void CommThread::handleError(QSerialPort::SerialPortError error)
 {
+    qDebug() << "Serial Port Error: " << error;
+    _device->clearError();
+    _device->close();
+
     // 重试三次
     for (int i = 0; i < 3; i++) {
-//        if (_device->isOpen()) return;
-//        if (_device->open(QIODevice::ReadOnly)) return;
-        msleep(300);
+        if (_device->open(QIODevice::ReadOnly)) return;
+        msleep(250);
     }
+
+    _deviceState = CLOSE;
     emit connectionLost();
 }

@@ -236,7 +236,7 @@
          <x>10</x>
          <y>30</y>
          <width>391</width>
-         <height>86</height>
+         <height>128</height>
         </rect>
        </property>
        <layout class="QFormLayout" name="formLayout_2">
@@ -328,7 +328,7 @@
    <property name="title">
     <string>GroupBox</string>
    </property>
-   <widget class="QCheckBox" name="checkBox">
+   <widget class="QCheckBox" name="cbFullScreen">
     <property name="geometry">
      <rect>
       <x>40</x>

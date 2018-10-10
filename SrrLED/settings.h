@@ -43,6 +43,9 @@ public:
     double getFilterThreshold() const;
     void setFilterThreshold(double filterThreshold);
 
+    bool getFullscreenOnStartup() const;
+    void setFullscreenOnStartup(bool fullscreenOnStartup);
+
 private:
     QString _portNameData;
     qint32 _baudRateData;
@@ -55,6 +58,7 @@ private:
     double _speedThreshold;
     double _filterThreshold;
     int _frameRate;
+    bool _fullscreenOnStartup;
 };
 
 #endif // SETTINGS_H

@@ -120,3 +120,13 @@ void Settings::setFilterThreshold(double filterThreshold)
 {
     _filterThreshold = filterThreshold;
 }
+
+bool Settings::getFullscreenOnStartup() const
+{
+    return _fullscreenOnStartup;
+}
+
+void Settings::setFullscreenOnStartup(bool fullscreenOnStartup)
+{
+    _fullscreenOnStartup = fullscreenOnStartup;
+}

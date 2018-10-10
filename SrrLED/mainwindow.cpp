@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setOrganizationName("718");
     QCoreApplication::setApplicationName("SrrLED");
     qRegisterMetaType<CommThread::DeviceState>("CommThread::DeviceState");
-    qRegisterMetaType<CommThread::FramePerMinute>("CommThread::FramePerMinute");
+    qRegisterMetaType<CommThread::FramePerSecond>("CommThread::FramePerMinute");
 
     initGui();
     _settings = new Settings(this);
@@ -33,13 +33,13 @@ MainWindow::MainWindow(QWidget *parent) :
     tryFindSerialPort();
     displaySubframeParams();
 
-    connect(_commThread, &CommThread::frameChanged, this, &MainWindow::onFrameChanged);
-    connect(_commThread, &CommThread::deviceOpenSuccess, this, &MainWindow::onDeviceOpenSuccess);
-    connect(_commThread, &CommThread::deviceOpenFailed, this, &MainWindow::onDeviceOpenFailed);
-    connect(_commThread, &CommThread::connectionLost, this, &MainWindow::onConnectionLost);
-    connect(this, &MainWindow::dispDone, _commThread, &CommThread::onDispDone, Qt::ConnectionType::QueuedConnection);
-    connect(this, &MainWindow::deviceStateChanged, _commThread, &CommThread::onDeviceStateChanged, Qt::ConnectionType::QueuedConnection);
-    connect(this, &MainWindow::deviceOpen, _commThread, &CommThread::onDeviceOpen, Qt::ConnectionType::QueuedConnection);
+    connect(_commThread, &CommThread::frameChanged, this, &MainWindow::handleFrameChanged);
+    connect(_commThread, &CommThread::deviceOpenSuccess, this, &MainWindow::handleDeviceOpenSuccess);
+    connect(_commThread, &CommThread::deviceOpenFailed, this, &MainWindow::handleDeviceOpenFailed);
+    connect(_commThread, &CommThread::connectionLost, this, &MainWindow::handleConnectionLost);
+    connect(this, &MainWindow::dispDone, _commThread, &CommThread::handleDispDone, Qt::ConnectionType::QueuedConnection);
+    connect(this, &MainWindow::deviceStateChanged, _commThread, &CommThread::handleDeviceStateChanged, Qt::ConnectionType::QueuedConnection);
+    connect(this, &MainWindow::deviceOpen, _commThread, &CommThread::handleDeviceOpen, Qt::ConnectionType::QueuedConnection);
 
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::onTimeOut);
@@ -51,6 +51,7 @@ MainWindow::~MainWindow()
 {
     _commThread->terminate();
     _commThread->wait();
+    if (_portUart->isOpen()) _portUart->close();
     if (_portData->isOpen()) _portData->close();
 
     delete _commThread;
@@ -144,38 +145,24 @@ void MainWindow::onActionConnect() {
     }
 
     emit deviceOpen();
-
-    //    if (_portData->open(QIODevice::ReadOnly)) {
-    //        actionConnect->setEnabled(false);
-    //        actionDisconnect->setEnabled(true);
-    //        actionSettings->setEnabled(false);
-    //        emit deviceStateChanged(CommThread::OPEN);
-    //        statusBar()->showMessage("Device Status: Listening");
-    //        return;
-    //    } else {
-    //        QMessageBox::critical(this,
-    //                              tr("Open Failed"),
-    //                              tr("Failed to open DATA port\nPlease check settings!"));
-    //        return;
-    //    }
 }
 
 void MainWindow::onActionDisconnect() {
     emit deviceStateChanged(CommThread::PAUSE);
-    statusBar()->showMessage("Device Status: Closed");
+    statusBar()->showMessage("Device Status: Paused");
 
     actionConnect->setEnabled(true);
     actionDisconnect->setEnabled(false);
     actionSettings->setEnabled(true);
-    _plotWorker->beginReplot();
-    _plotWorker->endReplot();
+//    _plotWorker->beginReplot();
+//    _plotWorker->endReplot();
 }
 
 void MainWindow::onActionSettings() {
     DialogPreference dlg(_settings, this);
     if (dlg.exec()) {
         _settings->printInfo();
-        emit frameRateChanged(CommThread::FramePerMinute(_settings->getFrameRate()));
+        emit frameRateChanged(CommThread::FramePerSecond(_settings->getFrameRate()));
     }
 }
 
@@ -190,7 +177,7 @@ void MainWindow::onTimeOut()
     }
 }
 
-void MainWindow::onDeviceOpenSuccess()
+void MainWindow::handleDeviceOpenSuccess()
 {
     actionConnect->setEnabled(false);
     actionDisconnect->setEnabled(true);
@@ -198,14 +185,14 @@ void MainWindow::onDeviceOpenSuccess()
     statusBar()->showMessage("Device Status: Listening");
 }
 
-void MainWindow::onDeviceOpenFailed()
+void MainWindow::handleDeviceOpenFailed()
 {
     QMessageBox::critical(this,
                           tr("Open Failed"),
                           tr("Failed to open DATA port\nPlease check settings!"));
 }
 
-void MainWindow::onConnectionLost()
+void MainWindow::handleConnectionLost()
 {
     QMessageBox::critical(this,
                           tr("Device Connection Lost"),
@@ -302,7 +289,8 @@ void MainWindow::initGui()
 
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-    showFullScreen();
+//    showFullScreen();
+    showNormal();
 
     // 工具栏设置
     actionConnect = new QAction(QIcon(":/icons/connect.svg"),
@@ -410,7 +398,7 @@ const Tracker_t* MainWindow::extractSpeed(vector<Tracker_t> &trackers)
     return nullptr;
 }
 
-void MainWindow::onFrameChanged(SrrPacket *pSrrPacket) {
+void MainWindow::handleFrameChanged(SrrPacket *pSrrPacket) {
     dispPacketDetail(pSrrPacket);
     const Tracker_t *it = nullptr;
     if (pSrrPacket->getFrameNumber()%2 == 1) {

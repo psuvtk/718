@@ -47,14 +47,14 @@ signals:
     void deviceOpen();
 
     void deviceStateChanged(const CommThread::DeviceState &deviceState);
-    void frameRateChanged(const CommThread::FramePerMinute &frameRate);
+    void frameRateChanged(const CommThread::FramePerSecond &frameRate);
 
 public slots:
     // commthread
-    void onFrameChanged(SrrPacket *);
-    void onDeviceOpenSuccess();
-    void onDeviceOpenFailed();
-    void onConnectionLost();
+    void handleFrameChanged(SrrPacket *);
+    void handleDeviceOpenSuccess();
+    void handleDeviceOpenFailed();
+    void handleConnectionLost();
 
 private slots:
     void showAboutMessage();
@@ -62,9 +62,6 @@ private slots:
     void onActionDisconnect();
     void onActionSettings();
     void onTimeOut();
-
-
-
 
     // gui
     void on_cbNearView_toggled(bool checked);
@@ -91,7 +88,6 @@ private:
     QAction *actionConnect;
     QAction *actionDisconnect;
     QAction *actionSettings;
-    QMutex *_mutex;
 };
 
 #endif // MAINWINDOW_H

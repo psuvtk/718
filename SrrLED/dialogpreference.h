@@ -25,6 +25,7 @@ private slots:
 
     void on_cbConfig_currentIndexChanged(int index);
 
+
 private:
     void fillComboBoxes();
 
