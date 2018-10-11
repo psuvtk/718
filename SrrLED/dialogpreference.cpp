@@ -26,12 +26,6 @@ void DialogPreference::on_pbSave_clicked()
     _settings->setPortNameUartPort(ui->lePortName_UartPort->text());
     _settings->setPortNameDataPort(ui->lePortName_DataPort->text());
 
-    if (ui->cbConfig->currentIndex() == 0) {
-        _settings->setConfigFilePath("");
-    } else {
-        _settings->setConfigFilePath(ui->leConfigPath->text());
-    }
-
     _settings->setSpeedThreshold(ui->dsbSpeedThreshold->value());
     _settings->setFilterThreshold(ui->dsbFilterThreshold->value());
     _settings->setFrameRate(ui->cbFrameRate->currentIndex() + 1);
@@ -70,25 +64,8 @@ void DialogPreference::fillComboBoxes() {
         break;
     }
 
-    if (_settings->getConfigFilePath() == "") {
-        ui->cbConfig->setCurrentIndex(0);
-        ui->leConfigPath->clear();
-        ui->leConfigPath->setEnabled(false);
-    } else {
-        ui->cbConfig->setCurrentIndex(1);
-        ui->leConfigPath->setText(_settings->getConfigFilePath());
-        ui->leConfigPath->setClearButtonEnabled(true);
-    }
-
     ui->cbFrameRate->setCurrentIndex(_settings->getFrameRate()-1);
     ui->dsbSpeedThreshold->setValue(_settings->getSpeedThreshold());
     ui->dsbFilterThreshold->setValue(_settings->getFilterThreshold());
-}
-
-
-
-void DialogPreference::on_cbConfig_currentIndexChanged(int index)
-{
-    if (index == 0) ui->leConfigPath->setEnabled(false);
-    else ui->leConfigPath->setEnabled(true);
+    ui->cbFullScreen->setChecked(_settings->getFullscreenOnStartup());
 }

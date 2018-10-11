@@ -58,9 +58,12 @@ private slots:
 
 private:
     QSerialPort *_device = nullptr;
-
+    QByteArray bufRecv;
+    QByteArray bufFrame;
     FramePerSecond _frameRate = FPS33;
     DeviceState _deviceState = CLOSE;
+    QTime _tic;
+
     bool _isDispDone = true;
 };
 

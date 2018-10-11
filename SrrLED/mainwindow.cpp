@@ -13,25 +13,15 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setOrganizationName("718");
     QCoreApplication::setApplicationName("SrrLED");
     qRegisterMetaType<CommThread::DeviceState>("CommThread::DeviceState");
-    qRegisterMetaType<CommThread::FramePerSecond>("CommThread::FramePerMinute");
+    qRegisterMetaType<CommThread::FramePerSecond>("CommThread::FramePerSecond");
 
-    initGui();
     _settings = new Settings(this);
-
-    // 初始化 串口
     _portUart = new QSerialPort;
     _portData = new QSerialPort;
-
-    // 初始化 通信线程
     _commThread = new CommThread(_portData);
-    _commThread->start();
 
     // 初始化 绘制线程
     _plotWorker = new PlotWorker(ui->canvasRange, ui->canvasDoppler);
-    _plotWorker->drawBackground();
-
-    tryFindSerialPort();
-    displaySubframeParams();
 
     connect(_commThread, &CommThread::frameChanged, this, &MainWindow::handleFrameChanged);
     connect(_commThread, &CommThread::deviceOpenSuccess, this, &MainWindow::handleDeviceOpenSuccess);
@@ -40,11 +30,21 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::dispDone, _commThread, &CommThread::handleDispDone, Qt::ConnectionType::QueuedConnection);
     connect(this, &MainWindow::deviceStateChanged, _commThread, &CommThread::handleDeviceStateChanged, Qt::ConnectionType::QueuedConnection);
     connect(this, &MainWindow::deviceOpen, _commThread, &CommThread::handleDeviceOpen, Qt::ConnectionType::QueuedConnection);
+    connect(this, &MainWindow::frameRateChanged, _commThread, &CommThread::handleFrameRateChanged, Qt::ConnectionType::QueuedConnection);
 
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::onTimeOut);
     timer->setInterval(2500);
     timer->start();
+
+    initGui();
+    populateLocalSetting();
+    tryFindSerialPort();
+    displaySubframeParams();
+
+    _plotWorker->drawBackground();
+    _commThread->start();
+
 }
 
 MainWindow::~MainWindow()
@@ -194,6 +194,9 @@ void MainWindow::handleDeviceOpenFailed()
 
 void MainWindow::handleConnectionLost()
 {
+    actionConnect->setEnabled(true);
+    actionDisconnect->setEnabled(false);
+    actionSettings->setEnabled(true);
     QMessageBox::critical(this,
                           tr("Device Connection Lost"),
                           tr("Device Connection Lost!"));
@@ -269,28 +272,21 @@ retry:
 
 void MainWindow::initGui()
 {
-
-    // Widgets位置尺寸设置
-    auto dh = QApplication::desktop()->height() - menuBar()->height() - statusBar()->height();
-    auto dw = QApplication::desktop()->width();
-
-    ui->tabWidget->setGeometry(0, 0, dw, dh);
-    ui->canvasRange->setGeometry(10, 10, dh-60, dh-60);
-    ui->canvasDoppler->setGeometry(dh-30, 10, dw-dh+10, dh/2-20);
-    ui->gbSpeed->setGeometry(dh-30, dh*5/8,
-                             (dw-dh+20)*3/5-10, dh/4);
-
-
-    ui->gbDisplay->setGeometry((dw-dh+20)*3/5+dh-30, dh*5/8,
-                               (dw-dh+20)*2/5-10, dh/4);
+    QGridLayout *mainLayout = new QGridLayout();
+    mainLayout->addWidget(ui->canvasRange, 0, 0,18,18);
+    mainLayout->addWidget(ui->canvasDoppler, 0, 18,7,14);
+    mainLayout->addWidget(ui->groupBox_3, 8, 19, 5, 6);
+    mainLayout->addWidget(ui->groupBox_4, 8, 25, 5, 6);
+    mainLayout->addWidget(ui->gbSpeed, 14,19,3,6);
+    mainLayout->addWidget(ui->gbDisplay, 14,25,3,6);
+    centralWidget()->setLayout(mainLayout);
 
     // 超速标签设置
     ui->labelExceedSpeed->setStyleSheet("color:green;");
 
     menuBar()->hide();
     setWindowTitle(tr("SrrLED"));
-//    showFullScreen();
-    showNormal();
+    setWindowIcon(QIcon(":/icons/oset.png"));
 
     // 工具栏设置
     actionConnect = new QAction(QIcon(":/icons/connect.svg"),
@@ -314,60 +310,146 @@ void MainWindow::initGui()
     ui->mainToolBar->addAction(actionSettings);
     connect(actionSettings, &QAction::triggered, this, &MainWindow::onActionSettings);
 
+    QAction *actionAbout = new QAction(QIcon(":/icons/toy.ico"),
+                                       tr("about"),
+                                       this);
+    ui->mainToolBar->addAction(actionAbout);
+    connect(actionAbout, &QAction::triggered, this, [=](){
+
+                QMessageBox::about(this,
+                           "About SrrLED",
+                           tr("<h1>SrrLED</h1>"
+                              "<h3>Reseach Center of Electronics & Infomation Equipment for Ocean& Aerospace<br/></h3>"
+                              "Software Version: v0.04<br/>"
+                              "Qt Version: v5.11.2<br/>"
+                              "<h5>Developed By Kristoffer</h5>"));
+    });
+
     // 参数显示控件初始化
-    ui->twPacketSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twPacketSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twParamSubframe1->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twParamSubframe2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->twPacketSubframe1->setColumnWidth(0, 280);
-    ui->twPacketSubframe2->setColumnWidth(0, 280);
-    ui->twParamSubframe1->setColumnWidth(0, 245);
-    ui->twParamSubframe2->setColumnWidth(0, 245);
+    QString detailTmpl = "<style type=\"text/css\">"
+                         ".tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}"
+                         ".tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}"
+                         ".tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}"
+                         ".tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}"
+                         ".tg .tg-lqy6{text-align:right;vertical-align:top}"
+                         ".tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}"
+                         ".tg .tg-dvpl{border-color:inherit;text-align:right;vertical-align:top}"
+                         ".tg .tg-0lax{text-align:left;vertical-align:top}"
+                         "</style>"
+                        "<table class=\"tg\">"
+                        "<tr><th class=\"tg-c3ow\" colspan=\"2\">Subframe #%1</th></tr>"
+                        "<tr><td class=\"tg-0pky\">Version</td><td class=\"tg-dvpl\"></td></tr>"
+                        "<tr><td class=\"tg-0pky\">Platform</td><td class=\"tg-dvpl\"></td></tr>"
+                        "<tr><td class=\"tg-0pky\">TotalPacketLen</td><td class=\"tg-dvpl\"></td></tr>"
+                        "<tr> <td class=\"tg-0pky\">FrameNumber</td><td class=\"tg-dvpl\"></td></tr>"
+                        "<tr><td class=\"tg-0pky\">TimeCpuCycles</td><td class=\"tg-dvpl\"></td></tr>"
+                        "<tr><td class=\"tg-0lax\">NumDetectedObjs</td><td class=\"tg-lqy6\"></td></tr>"
+                        "<tr><td class=\"tg-0lax\">NumTLVs</td><td class=\"tg-lqy6\"></td></tr>";
+    ui->textBrowserFrame1Detail->setHtml(detailTmpl.arg("SRR"));
+    ui->textBrowserFrame2Detail->setHtml(detailTmpl.arg("USRR"));
+}
+
+void MainWindow::populateLocalSetting()
+{
+    if (_settings->getFullscreenOnStartup()) {
+        showFullScreen();
+    } else {
+        showMaximized();
+    }
+
+    emit frameRateChanged(CommThread::FramePerSecond(_settings->getFrameRate()));
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_F11) {
+        if (_isFullScreen) {
+            _isFullScreen = false;
+            showMaximized();
+        } else {
+            _isFullScreen = true;
+            showFullScreen();
+        }
+        return;
+    }
+
+    if (event->key() == Qt::Key_Space) {
+        if (actionConnect->isEnabled())
+            onActionConnect();
+    }
 }
 
 void MainWindow::displaySubframeParams() {
-    ui->twParamSubframe1->setColumnWidth(0, 190);
-    ui->twParamSubframe2->setColumnWidth(0, 190);
-    ui->twParamSubframe1->setItem(0, 0, new QTableWidgetItem("76"));
-    ui->twParamSubframe1->setItem(0, 1, new QTableWidgetItem("0.4096"));
-    ui->twParamSubframe1->setItem(0, 2, new QTableWidgetItem("0.3662"));
-    ui->twParamSubframe1->setItem(0, 3, new QTableWidgetItem("0.5227"));
-    ui->twParamSubframe1->setItem(0, 4, new QTableWidgetItem("1"));
-
-    ui->twParamSubframe2->setItem(0, 0, new QTableWidgetItem("77.0"));
-    ui->twParamSubframe2->setItem(0, 1, new QTableWidgetItem("3.4561"));
-    ui->twParamSubframe2->setItem(0, 2, new QTableWidgetItem("0.434"));
-    ui->twParamSubframe2->setItem(0, 3, new QTableWidgetItem("0.3229"));
-    ui->twParamSubframe2->setItem(0, 4, new QTableWidgetItem("2"));
+    ui->textBrowserFrame1Params->setHtml("<style type=\"text/css\">"
+                                       ".tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}"
+                                       ".tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}"
+                                       ".tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}"
+                                       ".tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}"
+                                       ".tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}"
+                                       ".tg .tg-dvpl{border-color:inherit;text-align:right;vertical-align:top}"
+                                       "</style>"
+                                       "<table class=\"tg\"><tr><th class=\"tg-c3ow\" colspan=\"2\">Subframe #1</th></tr>"
+                                       "<tr><td class=\"tg-0pky\">Start Frequency(GHz)</td><td class=\"tg-dvpl\">76</td></tr>"
+                                       "<tr><td class=\"tg-0pky\">BandWidth(GHz)</td><td class=\"tg-dvpl\">0.4096</td></tr>"
+                                       "<tr><td class=\"tg-0pky\">Range Resolution(m)</td><td class=\"tg-dvpl\">0.3662</td></tr>"
+                                       "<tr><td class=\"tg-0pky\">Velosity Resolution(m/s)</td><td class=\"tg-dvpl\">0.5227</td></tr>"
+                                       "<tr><td class=\"tg-0pky\">Number of Tx(MIMO)</td><td class=\"tg-dvpl\">1</td></tr></table>");
+    ui->textBrowserFrame2Params->setHtml("<style type=\"text/css\">"
+                                         ".tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}"
+                                         ".tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}"
+                                         ".tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}"
+                                         ".tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}"
+                                         ".tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}"
+                                         ".tg .tg-dvpl{border-color:inherit;text-align:right;vertical-align:top}"
+                                         "</style>"
+                                         "<table class=\"tg\"><tr><th class=\"tg-c3ow\" colspan=\"2\">Subframe #2</th></tr>"
+                                         "<tr><td class=\"tg-0pky\">Start Frequency(GHz)</td><td class=\"tg-dvpl\">76</td></tr>"
+                                         "<tr><td class=\"tg-0pky\">BandWidth(GHz)</td><td class=\"tg-dvpl\">3.4561</td></tr>"
+                                         "<tr><td class=\"tg-0pky\">Range Resolution(m)</td><td class=\"tg-dvpl\">0.0434</td></tr>"
+                                         "<tr><td class=\"tg-0pky\">Velosity Resolution(m/s)</td><td class=\"tg-dvpl\">0.3229</td></tr>"
+                                         "<tr><td class=\"tg-0pky\">Number of Tx(MIMO)</td><td class=\"tg-dvpl\">2</td></tr></table>");
 }
 
 void MainWindow::dispPacketDetail(SrrPacket *pSrrPacket)
 {
-    QTableWidget *tw;
+    QString detailTmpl = "<style type=\"text/css\">"
+                         ".tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}"
+                         ".tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}"
+                         ".tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}"
+                         ".tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}"
+                         ".tg .tg-lqy6{text-align:right;vertical-align:top}"
+                         ".tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}"
+                         ".tg .tg-dvpl{border-color:inherit;text-align:right;vertical-align:top}"
+                         ".tg .tg-0lax{text-align:left;vertical-align:top}"
+                         "</style>"
+                        "<table class=\"tg\">"
+                        "<tr><th class=\"tg-c3ow\" colspan=\"2\">Subframe #%9</th></tr>"
+                        "<tr><td class=\"tg-0pky\">Version</td><td class=\"tg-dvpl\">0x%1</td></tr>"
+                        "<tr><td class=\"tg-0pky\">Platform</td><td class=\"tg-dvpl\">0x%2</td></tr>"
+                        "<tr><td class=\"tg-0pky\">TotalPacketLen</td><td class=\"tg-dvpl\">%3</td></tr>"
+                        "<tr> <td class=\"tg-0pky\">FrameNumber</td><td class=\"tg-dvpl\">%4</td></tr>"
+                        "<tr><td class=\"tg-0pky\">TimeCpuCycles</td><td class=\"tg-dvpl\">%5</td></tr>"
+                        "<tr><td class=\"tg-0lax\">NumDetectedObjs</td><td class=\"tg-lqy6\">%6</td></tr>"
+                        "<tr><td class=\"tg-0lax\">NumTLVs</td><td class=\"tg-lqy6\">%7</td></tr>"
+//                        "<tr><td class=\"tg-0lax\">Subframe Number</td><td class=\"tg-lqy6\">%8</td></tr>"
+                        "</table>";
+    QString detail = detailTmpl.arg(pSrrPacket->getVersion(), 8, 16, QChar('0'))
+            .arg(pSrrPacket->getPlatform(), 8, 16, QChar('0'))
+            .arg(pSrrPacket->getTotalPacketLen())
+            .arg(pSrrPacket->getFrameNumber())
+            .arg(pSrrPacket->getTimeCpuCycles())
+            .arg(pSrrPacket->getNumDetectedObj())
+            .arg(pSrrPacket->getNumTLVs())
+//            .arg(pSrrPacket->getSubframeNumber())
+            ;
+
     if (pSrrPacket->getSubframeNumber() == 0) {
-        tw = ui->twPacketSubframe1;
+        //srr
+        ui->textBrowserFrame1Detail->setHtml(detail.arg("SRR"));
     } else {
-        tw = ui->twPacketSubframe2;
+        // usrr
+        ui->textBrowserFrame2Detail->setHtml(detail.arg("USRR"));
     }
-
-    QString version = QString("0x%1").arg(pSrrPacket->getVersion(), 8, 16, QChar('0'));
-    QString platform = QString("0x%1").arg(pSrrPacket->getPlatform(), 8, 16, QChar('0'));
-    QString totalPacketLen = QString::number(pSrrPacket->getTotalPacketLen());
-    QString frameNumber = QString::number(pSrrPacket->getFrameNumber());
-    QString timeCpuCycles = QString::number(pSrrPacket->getTimeCpuCycles());
-    QString numDetObjs = QString::number(pSrrPacket->getNumDetectedObj());
-    QString numTLVs = QString::number(pSrrPacket->getNumTLVs());
-    QString subframeNumber = QString::number(pSrrPacket->getSubframeNumber());
-
-    tw->setItem(0, 0, new QTableWidgetItem("0x0102 0x0304 0x0506 0x0708"));
-    tw->setItem(0, 1, new QTableWidgetItem(version));
-    tw->setItem(0, 2, new QTableWidgetItem(platform));
-    tw->setItem(0, 3, new QTableWidgetItem(totalPacketLen));
-    tw->setItem(0, 4, new QTableWidgetItem(frameNumber));
-    tw->setItem(0, 5, new QTableWidgetItem(timeCpuCycles));
-    tw->setItem(0, 6, new QTableWidgetItem(numDetObjs));
-    tw->setItem(0, 7, new QTableWidgetItem(numTLVs));
-    tw->setItem(0, 8, new QTableWidgetItem(subframeNumber));
 }
 
 const Tracker_t* MainWindow::extractSpeed(vector<Tracker_t> &trackers)

@@ -23,9 +23,6 @@ private slots:
 
     void on_pbSave_clicked();
 
-    void on_cbConfig_currentIndexChanged(int index);
-
-
 private:
     void fillComboBoxes();
 

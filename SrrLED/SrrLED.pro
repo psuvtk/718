@@ -48,3 +48,5 @@ FORMS += \
 
 RESOURCES += \
     icons.qrc
+
+RC_ICONS = oset.ico

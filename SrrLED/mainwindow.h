@@ -41,7 +41,8 @@ public:
     bool sensorStart();
 
     void initGui();
-
+    void populateLocalSetting();
+    void keyPressEvent(QKeyEvent *event);
 signals:
     void dispDone();
     void deviceOpen();
@@ -88,6 +89,7 @@ private:
     QAction *actionConnect;
     QAction *actionDisconnect;
     QAction *actionSettings;
+    bool _isFullScreen = true;
 };
 
 #endif // MAINWINDOW_H

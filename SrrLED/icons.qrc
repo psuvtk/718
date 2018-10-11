@@ -4,5 +4,7 @@
         <file>folder.svg</file>
         <file>settings.svg</file>
         <file>disconnect.svg</file>
+        <file>oset.png</file>
+        <file>toy.ico</file>
     </qresource>
 </RCC>

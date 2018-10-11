@@ -81,6 +81,12 @@ void Settings::readLocalSettings() {
     } else {
         _filterThreshold = 0.36;
     }
+
+    if (settings.contains("fullscreenOnStartup")) {
+        _fullscreenOnStartup = settings.value("fullscreenOnStartup").toBool();
+    } else {
+        _fullscreenOnStartup = 1;
+    }
 }
 
 void Settings::writeLocalSettings() {
@@ -89,6 +95,7 @@ void Settings::writeLocalSettings() {
     settings.setValue("frameRate", _frameRate);
     settings.setValue("speedThreshold", _speedThreshold);
     settings.setValue("filterThreshold", _filterThreshold);
+    settings.setValue("fullscreenOnStartup", _fullscreenOnStartup);
 }
 
 double Settings::getSpeedThreshold() const
