@@ -27,13 +27,13 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    dronepacket.cpp \
-    configloader.cpp
+    commandlineinterface.cpp \
+    commthread.cpp
 
 HEADERS += \
         mainwindow.h \
-    dronepacket.h \
-    configloader.h
+    commandlineinterface.h \
+    commthread.h
 
 FORMS += \
         mainwindow.ui

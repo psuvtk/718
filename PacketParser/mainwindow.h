@@ -8,9 +8,7 @@
 #include <unordered_map>
 
 #include <QDebug>
-
-#include "dronepacket.h"
-
+#include "commandlineinterface.h"
 namespace Ui {
 class MainWindow;
 }
@@ -19,17 +17,15 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    void readConfig();
+
     void tryFindSerialPort();
-    bool sendConfig();
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-public slots:
-    void onReadyRead();
-    void onUartReadyRead();
+signals:
+    void sendCmd(const QString &cmd);
 
 private slots:
     void onActionConnect();
@@ -48,10 +44,10 @@ private:
     qint32 _baudRate = 57600;
     QString _cfgFileName = "default.cfg";
 
-    QSerialPort *_portUart;
-    QSerialPort *_portData;
+    QString _portNameUart;
+    QString _portNameData;
 
-    QStringList _cmds;
+    CommandLineInterface *_cli;
 };
 
 #endif // MAINWINDOW_H
