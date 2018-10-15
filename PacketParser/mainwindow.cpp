@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QThread>
 #include <commandlineinterface.h>
+#include <QPlainTextEdit>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -38,8 +39,8 @@ MainWindow::MainWindow(QWidget *parent) :
     tryFindSerialPort();
 
     _cli = new CommandLineInterface(_portNameUart);
-    connect(this, &MainWindow::sendCmd, _cli, &CommandLineInterface::handleSendCmd);
-    _cli->start();
+//    connect(this, &MainWindow::sendCmd, _cli, &CommandLineInterface::handleSendCmd);
+//    _cli->start();
 }
 
 MainWindow::~MainWindow()
@@ -73,18 +74,14 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::onActionConnect()
 {
-//    emit sendCmd("advFrameCfg\n");
-//    QThread::msleep(100);
-//    emit sendCmd("sensorStart\n");
-//    QThread::msleep(100);
 
     QStringList cmds;
     cmds << "advFrameCfg\n" << "sensorStart\n";
 
 
     for (auto cmd: cmds) {
-        emit sendCmd(cmd);
-        QThread::msleep(75);
+        _cli->sendCmd(cmd);
+//        QThread::msleep(75);
     }
 
 }

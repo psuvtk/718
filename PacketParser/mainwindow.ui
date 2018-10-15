@@ -131,6 +131,16 @@
        </item>
       </layout>
      </widget>
+     <widget class="DataDisplay" name="plainTextEdit">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>120</y>
+        <width>361</width>
+        <height>291</height>
+       </rect>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -215,7 +225,7 @@
      <x>0</x>
      <y>0</y>
      <width>1508</width>
-     <height>26</height>
+     <height>34</height>
     </rect>
    </property>
   </widget>
@@ -230,6 +240,13 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>DataDisplay</class>
+   <extends>QPlainTextEdit</extends>
+   <header>datadisplay.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

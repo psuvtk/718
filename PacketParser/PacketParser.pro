@@ -28,12 +28,14 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     commandlineinterface.cpp \
-    commthread.cpp
+    commthread.cpp \
+    datadisplay.cpp
 
 HEADERS += \
         mainwindow.h \
     commandlineinterface.h \
-    commthread.h
+    commthread.h \
+    datadisplay.h
 
 FORMS += \
         mainwindow.ui

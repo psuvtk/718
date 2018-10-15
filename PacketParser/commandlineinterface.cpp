@@ -13,9 +13,6 @@ CommandLineInterface::CommandLineInterface(QString portName,
 
     connect(_cli, &QSerialPort::readyRead,
             this, &CommandLineInterface::handleReadyRead);
-    if (!_cli->open(QIODevice::ReadWrite))
-        qDebug() << _cli->errorString();
-
 }
 
 CommandLineInterface::~CommandLineInterface()
@@ -24,48 +21,59 @@ CommandLineInterface::~CommandLineInterface()
     delete _cli;
 }
 
+bool CommandLineInterface::open()
+{
+    if (_cli->isOpen()) _cli->close();
+    return _cli->open(QIODevice::ReadWrite);
+}
+
+void CommandLineInterface::close()
+{
+    if (_cli->isOpen()) _cli->close();
+}
+
 bool CommandLineInterface::sendConfigFile(const QString &path)
 {
+    QFile cfgFile(path);
+    if (!cfgFile.open(QIODevice::ReadOnly))
+        return false;
+
+    while (!cfgFile.atEnd()) {
+        QString cmd(cfgFile.readLine());
+        if (!sendCmd(cmd)) return false;
+    }
+
     return true;
 }
 
 bool CommandLineInterface::sendCmd(const QStringList &cmds)
 {
-    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite)){
-        qDebug() << _cli->errorString();
-        return false;
+    for (auto cmd: cmds) {
+        if (!sendCmd(cmd)) return false;
     }
-
-
     return true;
 }
 
 bool CommandLineInterface::sendCmd(const QString &cmd)
 {
-    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite | QIODevice::Text))
+    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite))
         return false;
 
-    return true;
-}
-
-void CommandLineInterface::setDelay(int delay)
-{
-    _delay = delay;
-}
-
-void CommandLineInterface::handleReadyRead()
-{
-    _bufRecv.append(_cli->readAll());
-    qDebug() << _bufRecv;
-}
-
-void CommandLineInterface::handleSendCmd(const QString &cmd)
-{
     _bufRecv.clear();
     _cli->write(cmd.trimmed().toLatin1());
     _cli->write("\n", 1);
     _cli->waitForBytesWritten(10);
-//    _cli->waitForReadyRead(10);
-    qDebug()<< "lalal" << _bufRecv;
+    _cli->waitForReadyRead(10);
+
+    qDebug() << "after wait:" << _bufRecv;
+
+    // TODO
+    return true;
 }
 
+
+void CommandLineInterface::handleReadyRead()
+{
+    _bufRecv.append(_cli->readAll());
+//    qDebug() << _bufRecv;
+}

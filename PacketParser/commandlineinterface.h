@@ -7,26 +7,20 @@
 #include <QSerialPort>
 #include <QDebug>
 
-class CommandLineInterface : public QThread
+class CommandLineInterface : public QObject
 {
     Q_OBJECT
+
 public:
     explicit CommandLineInterface(QString portName, QObject *parent = nullptr);
     ~CommandLineInterface();
 
-    bool sendConfigFile(const QString &path);
+    bool open();
+    void close();
 
+    bool sendConfigFile(const QString &path);
     bool sendCmd(const QStringList &cmds);
     bool sendCmd(const QString &cmd);
-
-
-    void setDelay(int delay);
-    void run() {
-        exec();
-    }
-
-public slots:
-    void handleSendCmd(const QString &cmd);
 
 private slots:
     void handleReadyRead();
@@ -35,7 +29,6 @@ private slots:
 private:
     QSerialPort *_cli;
     QByteArray _bufRecv;
-    int _delay = 50;  // ms
 };
 
 #endif // COMMANDLINEINTERFACE_H
