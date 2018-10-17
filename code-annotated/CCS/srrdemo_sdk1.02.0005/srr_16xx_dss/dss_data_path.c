@@ -2933,7 +2933,7 @@ uint32_t secondDimFFTandLog2Computation(MmwDemo_DSS_DataPathObj * restrict obj, 
 
 
 		/**
-		 * 如果是天线0（0~4/8）,则检查上次非相干积累的结果(sumAbs)是否传输完成;
+		 * 如果是天线0(0~4/8),则检查上次非相干积累的结果(sumAbs)是否传输完成;
 		 * 否则直接进行积累
 		 * @kristoffer
 		 */
