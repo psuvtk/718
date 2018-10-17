@@ -48,32 +48,53 @@ bool CommandLineInterface::sendConfigFile(const QString &path)
 
 bool CommandLineInterface::sendCmd(const QStringList &cmds)
 {
-    for (auto cmd: cmds) {
-        if (!sendCmd(cmd)) return false;
+    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite)) {
+        qDebug() << _cli->errorString();
+        return false;
     }
+
+    _bufRecv.clear();
+    for (auto cmd: cmds) {
+        if (!sendCmd(cmd)) {
+            qDebug() << "Failed to Send Command: " << cmd;
+            return false;
+        }
+    }
+
     return true;
 }
 
-bool CommandLineInterface::sendCmd(const QString &cmd)
+bool CommandLineInterface::sendCmd(const QString &cmd, int nRetry)
 {
-    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite))
+    if (!_cli->isOpen() && !_cli->open(QIODevice::ReadWrite)) {
+        qDebug() << _cli->errorString();
         return false;
+    }
 
+    int nErr = 0;
+    QString rStr = QString("%1\nDone\n\rSrrTIDesign:/>").arg(cmd.trimmed());
+retry:
     _bufRecv.clear();
     _cli->write(cmd.trimmed().toLatin1());
+    _cli->waitForBytesWritten(10);
+    _cli->waitForReadyRead(10);
     _cli->write("\n", 1);
     _cli->waitForBytesWritten(10);
     _cli->waitForReadyRead(10);
+    QThread::msleep(10);
 
-    qDebug() << "after wait:" << _bufRecv;
-
-    // TODO
-    return true;
+    if (rStr == QString(_bufRecv))
+        return true;
+    else if (nErr++ < nRetry) {
+        qDebug() << "retry once";
+        QThread::msleep(10);
+        goto retry;
+    }
+    return false;
 }
 
 
 void CommandLineInterface::handleReadyRead()
 {
     _bufRecv.append(_cli->readAll());
-//    qDebug() << _bufRecv;
 }

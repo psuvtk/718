@@ -134,10 +134,10 @@
      <widget class="DataDisplay" name="plainTextEdit">
       <property name="geometry">
        <rect>
-        <x>170</x>
-        <y>120</y>
-        <width>361</width>
-        <height>291</height>
+        <x>210</x>
+        <y>230</y>
+        <width>531</width>
+        <height>461</height>
        </rect>
       </property>
      </widget>
@@ -225,7 +225,7 @@
      <x>0</x>
      <y>0</y>
      <width>1508</width>
-     <height>34</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>

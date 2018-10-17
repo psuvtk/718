@@ -3,6 +3,8 @@
 #include <QThread>
 #include <commandlineinterface.h>
 #include <QPlainTextEdit>
+#include "datadisplay.h"
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -76,14 +78,11 @@ void MainWindow::onActionConnect()
 {
 
     QStringList cmds;
-    cmds << "advFrameCfg\n" << "sensorStart\n";
+    cmds.push_back("advFrameCfg\n");
+    cmds.push_back("sensorStart\n");
 
-
-    for (auto cmd: cmds) {
-        _cli->sendCmd(cmd);
-//        QThread::msleep(75);
-    }
-
+    if (_cli->sendCmd(cmds))
+        qDebug() << "Success";
 }
 
 void MainWindow::onActionDisconnect()

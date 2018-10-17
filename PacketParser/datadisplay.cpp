@@ -1,6 +1,6 @@
 #include "datadisplay.h"
 
-DataDisplay::DataDisplay()
+DataDisplay::DataDisplay(QWidget *parent)
 {
 
 }

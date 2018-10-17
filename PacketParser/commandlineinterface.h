@@ -7,6 +7,8 @@
 #include <QSerialPort>
 #include <QDebug>
 
+using std::string;
+
 class CommandLineInterface : public QObject
 {
     Q_OBJECT
@@ -20,7 +22,7 @@ public:
 
     bool sendConfigFile(const QString &path);
     bool sendCmd(const QStringList &cmds);
-    bool sendCmd(const QString &cmd);
+    bool sendCmd(const QString &cmd, int nRetry = 3);
 
 private slots:
     void handleReadyRead();
