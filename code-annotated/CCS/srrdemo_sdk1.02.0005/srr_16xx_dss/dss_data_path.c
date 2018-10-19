@@ -1183,6 +1183,7 @@ uint32_t rangeBasedPruning(
     uint32_t searchpeakValThresh = 0;
     j = 0;
     k = 0;         
+
     /* No grouping, copy all detected objects to the output matrix within specified min max range
      * with the necessary SNR. */
     for (i = 0; i < numDetectedObjects; i++)
@@ -1593,6 +1594,10 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 		/* doppler-CFAR-detecton on the current range gate.*/
         /**
          * 单元平均取最小恒虚警检测
+         * @ 输入: sumAbs
+         * @ 输出: 检测索引、SNR
+         *
+         * @ kristoffer
          */
 		numDetObjPerCfar = cfarCa_SO_dBwrap_withSNR(
 			obj->sumAbs,
@@ -1606,7 +1611,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 
         /* Reduce the detected objects to peaks. */
         /**
-         * 去掉那些不是峰值的点
+         * 去掉那些不是峰值的点, 峰值旁边的点不是很有用(同一个物体的多普勒保留一个即可)
          * @kristoffer
          */
 		numDetObjPerCfar = pruneToPeaks(obj->cfarDetObjIndexBuf, obj->cfarDetObjSNR, 
@@ -1672,10 +1677,11 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 		/* Decide which doppler 'gates' are to be subjected to the range-CFAR. We only need to do so 
          * if a detected object from the doppler-CFAR is detected at that 'doppler gate' . */
         /**
-         * TODO 这段话啥意思
+         * TODO 上面这段话有啥用
          */
         if (numDetObjPerCfar > 0)
 		{
+            // 对检测到  doppler的列进行标记
 			for (detIdx1 = 0; detIdx1 < numDetObjPerCfar; detIdx1++)
 			{
 				if (!MmwDemo_isSetDopplerLine(&obj->detDopplerLines, obj->cfarDetObjIndexBuf[detIdx1]))
@@ -1688,8 +1694,8 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 
 		/* populate the pre-detection matrix */
         /**
-         * 将CFAR检测结果(sumAbs)放到L3RAM中detMatrix
-         * L1->L3
+         * 将非相干积累结果(sumAbs)放到L3RAM中detMatrix
+         * L1RAM -> L3RAM
          * @kristoffer
          */
 		MmwDemo_startDmaTransfer(
@@ -1698,7 +1704,6 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 			SRR_SF1_EDMA_CH_DET_MATRIX,
 			subframeIndx);
 	}
-
 
     /**
      * 手册
@@ -1730,7 +1735,9 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 			chId = SRR_SF1_EDMA_CH_DET_MATRIX2;
 		}
 
+		// 取下一个 doppler检测到物体 的列标
 		dopplerLine = MmwDemo_getDopplerLine(&obj->detDopplerLines);
+		// 触发EDMA传输 detMatrix(L3RAM) -> subAbsRange(L2RAM)
 		EDMAutil_triggerType3(obj->edmaHandle[EDMA_INSTANCE_B],
 			(uint8_t *)(&obj->detMatrix[dopplerLine]),
 			(uint8_t *)(SOC_translateAddress((uint32_t)(&obj->sumAbsRange[0]),
@@ -1749,9 +1756,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 		waitingTime += Cycleprofiler_getTimeStamp() - startTimeWait;
 
 		/* Trigger next DMA */
-        /**
-         * 预取 *下一个* 缓冲区
-         */
+		// 预取下一个缓冲区
 		if (detIdx1 < (numDetDopplerLine1D - 1))
 		{
 			uint8_t chId;
@@ -1784,8 +1789,8 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 		 */
 		numDetObjPerCfar = cfarCadB_SO_withSNR(
 			&obj->sumAbsRange[(detIdx1 & 0x1) * obj->numRangeBins],
-			obj->cfarDetObjIndexBuf,
-			obj->cfarDetObjSNR,
+			obj->cfarDetObjIndexBuf,             // 输出 检测索引
+			obj->cfarDetObjSNR,                  // 输出 检测索引对应的SNR
 			obj->numRangeBins,
 			obj->cfarCfgRange.thresholdScale,
 			obj->cfarCfgRange.noiseDivShift,
@@ -1795,6 +1800,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 
 		if (numDetObjPerCfar > 0)
 		{
+
 			if (obj->processingPath == MAX_VEL_ENH_PROCESSING)
 			{
                 /*  
@@ -1806,7 +1812,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
                  * peaks in the doppler dimension. With this next step, the list of 
                  * objects are guaranteed to be peaks in both dimensions */
                 /**
-                 * 除去那些不是峰值的点
+                 * 除去那些不是峰值的点, 因为不需要点云
                  */
 				numDetObjPerCfar = pruneToPeaks(obj->cfarDetObjIndexBuf,
                                             obj->cfarDetObjSNR, 
@@ -1821,6 +1827,8 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 			}
 			else
 			{
+
+			    // 点云通道
                 if (detIdx1 != 0)
                 {
                     /* Prune to only neighbours of peaks (or peaks). This increases the point cloud 
@@ -1831,12 +1839,17 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
                      * This is not performed for the zero doppler case because in case the car has 
                      * stopped at an intersection, and there are many cars around it, every detected 
                      * point counts. */
+                    /**
+                     * 保留峰值以及峰值两侧的点以增大点云的密度，同时避免对一个目标检测到过多的点
+                     * @kristoffer
+                     */
                     numDetObjPerCfar = pruneToPeaksOrNeighbourOfPeaks(obj->cfarDetObjIndexBuf,
                                                 obj->cfarDetObjSNR, 
                                                 numDetObjPerCfar,
                                                 &obj->sumAbsRange[(detIdx1 & 0x1) * obj->numRangeBins],
                                                 obj->numRangeBins);
                 }
+
                 numDetObj2D =  findandPopulateDetectedObjects(obj, numDetObjPerCfar, dopplerLine,
                                     numDetObj2D, &obj->sumAbsRange[(detIdx1 & 0x1) * obj->numRangeBins]);
             }
@@ -1844,8 +1857,10 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 		dopplerLine = dopplerLineNext;
 	}
 
+
 	/**
-	 * 对点云(USRR)进行峰值分组
+	 * 对 点云(USRR) 进行峰值分组,
+	 * !!只对 Dopller方向处理，如果对range方向也做那么就没有点云了
 	 */
     if (obj->processingPath == POINT_CLOUD_PROCESSING)
     {
@@ -3107,6 +3122,7 @@ uint32_t findandPopulateDetectedObjects(
 	for (detIdx2 = 0; detIdx2 < numDetObjPerCfar; detIdx2++)
 	{
 		/* if there is space in the detObj2DRaw matrix, */
+	    /* 如果 矩阵detObj2DRaw 还有剩余空间, 即没有超过最大检测数目*/
 		if (numDetObj2D < obj->maxNumObj2DRaw)
 		{
             rangeIdx = cfarDetObjIndexBuf[detIdx2];
@@ -3124,23 +3140,31 @@ uint32_t findandPopulateDetectedObjects(
                     
 	        speed = ((float)dopplerIdxActual) * obj->velResolution;
             /* 2. The range (after correcting for the antenna delay). */
+	        /* 2. 计算距离，将 天线到LO 的固定误差考虑在内 */
             range = (((float)rangeIdx) * obj->rangeResolution) - MIN_RANGE_OFFSET_METERS;
             if (range < 0.0f)
             {
                 range = 0.0f;
             }
             
-			/* 3. Populate the output Array. */
+
+            /* 3. Populate the output Array. */
 			detObj2DRaw[numDetObj2D].rangeIdx = rangeIdx;
             detObj2DRaw[numDetObj2D].dopplerIdx = dopplerLine; 
             
+            // 根据索引计算实际speed, range
             detObj2DRaw[numDetObj2D].speed = (int16_t) (speed * oneQFormat); 
             detObj2DRaw[numDetObj2D].range = (uint16_t)(range * oneQFormat);
 			/* 4. Note that the peakVal is taken from the sumAbsRange. */
+            /* 4. 从 subAbsRange 获取peakVal
+             *    由于之前天线件的非相干积累所以现在要 除以8
+             */
             detObj2DRaw[numDetObj2D].peakVal = sumAbsRange[rangeIdx] >> obj->log2numVirtAnt;
 			/* 5. Note that the SNR is taken from the CFAR output. */
+            /* 5. 从CFAR检测的输出中获取SNR */
             detObj2DRaw[numDetObj2D].rangeSNRdB = cfarDetObjSNR[detIdx2] >> obj->log2numVirtAnt;
 			/* 6. Since we have no estimate of the doppler SNR, set it to 0. */
+            /* 6. 不对 多普勒-SNR 进行估计, 所以置零  */
             detObj2DRaw[numDetObj2D].dopplerSNRdB = 0;
             
             numDetObj2D++;
@@ -3183,6 +3207,7 @@ uint32_t pruneToPeaks(uint16_t* restrict cfarDetObjIndexBuf,
 	{
 		currObjLoc = cfarDetObjIndexBuf[detIdx2];
         
+		// 左右两侧
 		if (currObjLoc == 0)
 		{
             prevIdx = numBins - 1;
@@ -3201,6 +3226,8 @@ uint32_t pruneToPeaks(uint16_t* restrict cfarDetObjIndexBuf,
 			nextIdx = currObjLoc + 1;
 		}
 
+
+		// 仅保留峰值点
 		if ((sumAbs[nextIdx] < sumAbs[currObjLoc])
 			&& (sumAbs[prevIdx] < sumAbs[currObjLoc]))
 		{
@@ -3667,8 +3694,8 @@ uint32_t cfarCadB_SO_withSNR(const uint16_t inp[restrict],
  *******************************************************************************************************************
  */
 uint32_t cfarCa_SO_dBwrap_withSNR(const uint16_t inp[restrict],
-                                uint16_t out[restrict], 
-                                uint16_t outSNR[restrict], 
+                                uint16_t out[restrict],     // 输出
+                                uint16_t outSNR[restrict],  // 输出
                                 uint32_t len,
                                 uint32_t const1, uint32_t const2,
                                 uint32_t guardLen, uint32_t noiseLen)
@@ -4204,6 +4231,7 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
         uint8_t chId;
 
         /* Reset input buffer to azimuth FFT */
+        /* numAngleBins(USRR=SRR) = 32*/
         memset((uint8_t *)obj->azimuthIn, 0, obj->numAngleBins * sizeof(cmplx32ReIm_t));
 
         if (subframeIndx == 0)
@@ -4216,9 +4244,10 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
         }
 
         /* Set source for first (ping) DMA and trigger it, and set source second (Pong) DMA */
+        /* 配置偶数天线地址 */
         cubeOffset = obj->numDopplerBins * obj->numRxAntennas *
                 obj->numTxAntennas * (uint32_t) obj->detObj2D[detIdx2].rangeIdx * numChirpTypes;
-        
+
         EDMAutil_triggerType3(
             obj->edmaHandle[EDMA_INSTANCE_B],
             (uint8_t *)(&obj->radarCube[cubeOffset]),
@@ -4234,7 +4263,7 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
         {
             chId = SRR_SF1_EDMA_CH_3D_IN_PONG;
         }
-
+        /* 配置奇数天线地址 */
         cubeOffset = ((obj->numDopplerBins * obj->numRxAntennas *
                 obj->numTxAntennas * ((uint32_t)obj->detObj2D[detIdx2].rangeIdx) * numChirpTypes) + obj->numDopplerBins);
         
@@ -4245,14 +4274,17 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
             (uint8_t)chId,
             (uint8_t)SRR_EDMA_TRIGGER_DISABLE);
 
+        /* 对虚拟天线阵中的每个天线 */
         for (rxAntIdx = 0; rxAntIdx < (obj->numRxAntennas * obj->numTxAntennas); rxAntIdx++)
         {
             /* verify that previous DMA has completed. */
+            /* 等待EDMA传输完成 */
             startTimeWait = Cycleprofiler_getTimeStamp();
             MmwDemo_dataPathWait3DInputData(obj, pingPongId(rxAntIdx), subframeIndx);
             waitingTime += Cycleprofiler_getTimeStamp() - startTimeWait;
 
             /* kick off next DMA. */
+            /* 触发一次EDMA传输 */
             if (rxAntIdx < (obj->numRxAntennas * obj->numTxAntennas) - 1)
             {
                 if (isPong(rxAntIdx))
@@ -4272,11 +4304,12 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
             }
 
             /* Calculate one bin DFT, at detected doppler index.  */
+            /* 计算单点dft*/
             mmwavelib_dftSingleBinWithWindow(
                         (uint32_t *)&obj->dstPingPong[pingPongId(rxAntIdx) * obj->numDopplerBins],
                         (uint32_t *) obj->azimuthModCoefs,
                         obj->window2D,
-                        (uint64_t *) &obj->azimuthIn[rxAntIdx],
+                        (uint64_t *) &obj->azimuthIn[rxAntIdx],         // 输出
                         obj->numDopplerBins,
                         DOPPLER_IDX_TO_UNSIGNED(obj->detObj2D[detIdx2].dopplerIdx, obj->numDopplerBins));
         }
@@ -4303,7 +4336,7 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
                                         (int64_t *) &obj->azimuthIn[obj->numRxAntennas],
                                         obj->numRxAntennas * (obj->numTxAntennas -1));
         }
-        
+        // padding 置零
         memset((void *)&obj->azimuthIn[obj->numVirtualAntAzim], 0, (obj->numAngleBins - obj->numVirtualAntAzim) * sizeof(cmplx32ReIm_t));
 
         if (obj->processingPath == POINT_CLOUD_PROCESSING)
@@ -4313,13 +4346,15 @@ uint32_t azimuthProcessing(MmwDemo_DSS_DataPathObj *obj, uint32_t subframeIndx)
                    (void *) &obj->azimuthIn[0],
                    obj->numVirtualAntAzim * sizeof(cmplx32ReIm_t));
         }
-        
+
         /* 3D-FFT (Azimuth FFT) */
+        /* 角度-fft */
         DSP_fft32x32((int32_t *)obj->azimuthTwiddle32x32, obj->numAngleBins,
                      (int32_t *)obj->azimuthIn, (int32_t *)obj->azimuthOut);
-
+        // 幅度平方
         MmwDemo_magnitudeSquared(obj->azimuthOut, obj->azimuthMagSqr, obj->numAngleBins);
 
+        // 点云通道
         if (obj->processingPath == POINT_CLOUD_PROCESSING)
         {
             /* Zero padding */
