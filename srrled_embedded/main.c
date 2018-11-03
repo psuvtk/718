@@ -5,7 +5,7 @@
 #include "./include/radar_device.h"
 #include "./include/bytearray.h"
 
-#define MAX_BUF_LEN 2048
+#define MAX_BUF_LEN 1024
 #define SYNC_LEN 8
 
 int main (int argc, char *argv[]) {
@@ -28,7 +28,7 @@ int main (int argc, char *argv[]) {
     char recvbuf[MAX_BUF_LEN];
     const char sync[] = {0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07};
 
-    while (1) {  
+    while (1) {
         int num_recv = read(fd, recvbuf, MAX_BUF_LEN);
         bytearray_append(&framebuf, recvbuf, num_recv);
 
@@ -43,7 +43,7 @@ int main (int argc, char *argv[]) {
             }
         } else {
             int len = bytearray_find(&framebuf, sync, 8, 0);
-            if (len == -1) 
+            if (len == -1)
                 bytearray_clear(&framebuf);
             else
                 bytearray_lremove(&framebuf, len);
