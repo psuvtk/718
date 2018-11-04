@@ -20,7 +20,7 @@ bool sensor_stop();
 bool device_open(int *fd);
 bool device_close(int fd);
 
-bool config_serial(int fd, int baudrate);
+static bool config_serial(int fd, int baudrate);
 
 
 #endif // RADAR_DEVICE_H

@@ -1,9 +1,10 @@
 CC = gcc
 CFLAGS = --std=gnu99
-OBJS = main.o radar_device.o bytearray.o
+LDFLAGS = -lm
+OBJS = main.o radar_device.o bytearray.o radar_packet.o
 
 srrled: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o srrled.out
+	$(CC) $(CFLAGS)  $(OBJS) $(LDFLAGS) -o srrled.out
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

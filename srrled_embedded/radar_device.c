@@ -49,7 +49,7 @@ bool device_close(int fd) {
     close(fd);
 }
 
-bool config_serial(int fd, int baudrate) {
+static bool config_serial(int fd, int baudrate) {
     struct termios options;
 
     if (tcgetattr(fd, &options) == -1)
