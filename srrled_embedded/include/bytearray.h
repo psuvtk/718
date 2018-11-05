@@ -1,12 +1,12 @@
 #ifndef BYTEARRAY_H
 #define BYTEARRAY_H
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <malloc.h>
 #include <string.h>
 
-#define DEFAULT_BUF_LEN 512
-#define max(x,y) ((x)>(y)?(x):(y))
+#define DEFAULT_BUF_LEN 1024
 
 typedef struct {
     char *data;
@@ -14,7 +14,7 @@ typedef struct {
     int capacity;
 } bytearray_t;
 
-void bytearray_init(bytearray_t *buf);
+bool bytearray_init(bytearray_t *buf);
 void bytearray_destroy(bytearray_t *buf);
 
 void bytearray_append(bytearray_t *buf, char *pdata, int len);
