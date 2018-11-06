@@ -41,6 +41,7 @@ bool device_open(int *fd) {
 
     if (!config_serial(*fd, B921600)) 
         return false;
+    tcflush(*fd, TCIOFLUSH);
     return true;
 }
 

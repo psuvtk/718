@@ -14,7 +14,7 @@ typedef struct {
     int capacity;
 } bytearray_t;
 
-bool bytearray_init(bytearray_t *buf);
+void bytearray_init(bytearray_t *buf);
 void bytearray_destroy(bytearray_t *buf);
 
 void bytearray_append(bytearray_t *buf, char *pdata, int len);

@@ -1,18 +1,9 @@
 #include "./include/bytearray.h"
 
-bool bytearray_init(bytearray_t *buf) {
-    // reinit
-    if (buf->data != NULL)
-        free(buf->data);
-
-    buf->data = (char *)malloc(DEFAULT_BUF_LEN * sizeof(char));
-    if (buf->data == NULL) {
-        return false;
-    } else {
-        buf->size = 0;
-        buf->capacity = DEFAULT_BUF_LEN;
-        return true;
-    }
+void bytearray_init(bytearray_t *buf) {
+    buf->data = NULL;
+    buf->size = 0;
+    buf->capacity = 0;
 }
 
 void bytearray_destroy(bytearray_t *buf) {
@@ -24,8 +15,13 @@ void bytearray_destroy(bytearray_t *buf) {
 }
 
 void bytearray_append(bytearray_t *buf, char *pdata, int len) {
-    if (buf->data == NULL) {
+    if (buf->data == NULL || buf->capacity == 0) {
         buf->data = (char *)malloc(DEFAULT_BUF_LEN * sizeof(char));
+        if (buf->data == NULL) {
+            perror("malloc failed.");
+            exit(-1);
+        }
+
         memcpy(buf->data, pdata, len);
         buf->size = len;
         buf->capacity = DEFAULT_BUF_LEN;
@@ -34,14 +30,11 @@ void bytearray_append(bytearray_t *buf, char *pdata, int len) {
 
     if (buf->capacity - buf->size >= len) {
         // 足以容纳
-        printf("capacity enough\n");
         memcpy(&(buf->data)[buf->size], pdata, len);
         buf->size += len;
         return;
     } else {
         // 不足以容纳
-        printf("capacity not enough\n");
-
         while (buf->capacity < buf->size+len)
             buf->capacity *= 2;
 
@@ -49,13 +42,13 @@ void bytearray_append(bytearray_t *buf, char *pdata, int len) {
         if (new_buf == NULL) {
             perror("malloc new buffer faild");
             exit(-1);
-        } else {
-            memcpy(new_buf, buf->data, buf->size);
-            memcpy(&new_buf[buf->size], pdata, len);
-            free(buf->data);
-            buf->data = new_buf;
-            buf->size += len;
         }
+
+        memcpy(new_buf, buf->data, buf->size);
+        memcpy(&new_buf[buf->size], pdata, len);
+        buf->data = new_buf;
+        buf->size += len;
+        free(buf->data);
     }
 }
 
@@ -76,7 +69,7 @@ bool bytearray_startswith(const bytearray_t *buf, const char *pdata, int len) {
 
 int bytearray_find(const bytearray_t *buf, const char *pdata, int len, int skip) {
     if (buf->size < len+skip) return -1;
-    // FIXME: 是否有更高效匹配的实现？
+    // TODO: 是否有更高效匹配的实现？
     for (int i = skip; i < buf->size-len; i++) {
         if (memcmp(&(buf->data)[i], pdata, len) == 0)
             return i;

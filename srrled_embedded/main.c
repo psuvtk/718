@@ -13,38 +13,36 @@ void parse_packet(bytearray_t *buf, int len);
 
 int main (int argc, char *argv[]) {
     if (sensor_start()) {
-        printf("[+] sensor start success.");
+        printf("[+] sensor start success.\n");
     } else {
         perror("\nsensor start failed.");
-        exit(-1);
+        goto clear_and_exit;
     }
 
     int fd;
     if (device_open(&fd)) {
-        printf("[+] device open success.");
+        printf("[+] device open success.\n");
     } else {
         perror("device open failed.");
-        exit(-1);
+        goto clear_and_exit;
     }
 
     bytearray_t framebuf;
-    if (bytearray_init(&framebuf)) {
-        printf("[+] buffer init success\n");
-    } else {
-        perror("malloc faild");
-    }
+    bytearray_init(&framebuf);
 
     char recvbuf[MAX_BUF_LEN];
     const char sync[] = {0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07};
 
     while (1) {
         int num_recv = read(fd, recvbuf, MAX_BUF_LEN);
+        if (num_recv == 0) continue;
+
         bytearray_append(&framebuf, recvbuf, num_recv);
-        printf("\n\n--------------------------------------");
-        for (int i =0; i<framebuf.size; i++) {
-            printf("%02x ", (framebuf.data)[i]);
-        }
-        printf("\n");
+        printf("\n\n--------------------------------------\n");
+        // for (int i =0; i<framebuf.size; i++) {
+        //     printf("%02x ", (framebuf.data)[i]);
+        // }
+        // printf("\n");
         if (bytearray_startswith(&framebuf, sync, SYNC_LEN)) {
             printf("starts with sync\n");
             int next = bytearray_find(&framebuf, sync, 8, 8);
@@ -67,6 +65,8 @@ int main (int argc, char *argv[]) {
         }
     }
 
+clear_and_exit:
+    bytearray_destroy(&framebuf);
     return 0;
 }
 
