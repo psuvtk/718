@@ -561,7 +561,7 @@ static void SRR_DSS_initTask(UArg arg0, UArg arg1)
     obj = &gSrrDSSMCB.dataPathObj[0];
 
     /* Data path configuration for both subframes */
-    // 数据通道配置
+    // 数据通道配置, RAM存储器分配等
     MmwDemo_dataPathConfigBuffers(obj, SOC_XWR16XX_DSS_ADCBUF_BASE_ADDRESS);
    
     for (ik = 0; ik < NUM_SUBFRAMES; ik ++, obj++)
@@ -589,6 +589,7 @@ static void SRR_DSS_initTask(UArg arg0, UArg arg1)
     obj = &gSrrDSSMCB.dataPathObj[0];
 
     /* EDMA Configuration for both subframes. */
+    /* 对EDMA进行配置*/
     MmwDemo_dataPathConfigEdma(obj);
 
     /* The logging buffer is marked as available. */

@@ -43,6 +43,30 @@ void packet_parse(packet_t *packet, char *raw_packet, int length) {
         packet->isvalid = true;
     }
 }
+void packet_init(packet_t *packet) {
+    packet->detObj = NULL;
+    packet->cluster = NULL;
+    packet->trackers = NULL;
+    packet->parkingAssitBins = NULL;
+}
+void packet_clear(packet_t *packet) {
+    if (packet->detObj != NULL) {
+        free(packet->detObj);
+        packet->detObj = NULL;
+    }
+    if (packet->cluster != NULL) {
+        free(packet->cluster);
+        packet->cluster = NULL;
+    }
+    if (packet->trackers != NULL) {
+        free(packet->trackers);
+        packet->trackers = NULL;
+    }
+    if (packet->parkingAssitBins != NULL) {
+        free(packet->parkingAssitBins);
+        packet->parkingAssitBins = NULL;
+    }
+}
 
 static void construct_header(packet_t *packet, char *raw_packet) {
     packet->header.frameNumber = ((const __header_t *)raw_packet)->frameNumber;

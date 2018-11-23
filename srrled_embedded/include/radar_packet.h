@@ -141,8 +141,9 @@ typedef struct {
     StatsInfo_t statsInfo;
 } packet_t;
 
-
+void packet_init(packet_t *packet);
 void packet_parse(packet_t *packet, char *raw, int len);
+void packet_clear(packet_t *packet);
 
 static void construct_header(packet_t *packet, char *raw_packet);
 

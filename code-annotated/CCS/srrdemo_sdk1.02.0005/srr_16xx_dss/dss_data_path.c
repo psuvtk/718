@@ -1860,7 +1860,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
 
 	/**
 	 * 对 点云(USRR) 进行峰值分组,
-	 * !!只对 Dopller方向处理，如果对range方向也做那么就没有点云了
+	 * !!只对 Doppler方向处理，如果对range方向也做那么就没有点云了
 	 */
     if (obj->processingPath == POINT_CLOUD_PROCESSING)
     {
@@ -1887,7 +1887,7 @@ void MmwDemo_interFrameProcessing(MmwDemo_DSS_DataPathObj *obj, uint8_t subframe
                                     obj->SNRThresholds,obj->peakValThresholds,
                                     numDetObj2D, obj->numDopplerBins, obj->maxRange,
                                     obj->minRange);
-                                            
+
     obj->numDetObj = numDetObj2D;
     
     /* Azimuth  Processing. */
@@ -2585,7 +2585,7 @@ void MmwDemo_dataPathConfigBuffers(MmwDemo_DSS_DataPathObj *objIn, uint32_t adcB
 			MMWDEMO_MEMORY_ALLOC_MAX_STRUCT_ALIGN);
 		uint32_t detDopplerLines_dopplerLineMask_end = (uint32_t)obj->detDopplerLines.dopplerLineMask +
 			MAX((obj->numDopplerBins >> 5), 1) * sizeof(uint32_t); /* should be ceil */
-
+·       //
 		obj->detDopplerLines.dopplerLineMaskLen = MAX((obj->numDopplerBins >> 5), 1);
 
 		MMW_ALLOC_BUF(sumAbsRange, uint16_t,
@@ -3156,7 +3156,7 @@ uint32_t findandPopulateDetectedObjects(
             detObj2DRaw[numDetObj2D].speed = (int16_t) (speed * oneQFormat); 
             detObj2DRaw[numDetObj2D].range = (uint16_t)(range * oneQFormat);
 			/* 4. Note that the peakVal is taken from the sumAbsRange. */
-            /* 4. 从 subAbsRange 获取peakVal
+            /* 4. 从 sumAbsRange 获取peakVal
              *    由于之前天线件的非相干积累所以现在要 除以8
              */
             detObj2DRaw[numDetObj2D].peakVal = sumAbsRange[rangeIdx] >> obj->log2numVirtAnt;
